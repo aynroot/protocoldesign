@@ -7,6 +7,9 @@ import (
     "flag"
     "strconv"
     "time"
+
+    "./pft"
+    "log"
 )
 
 func main() {
@@ -81,6 +84,15 @@ func Client(port int, server string, resource string) {
     conn, err := net.DialUDP("udp", local_addr, server_addr)
     CheckError(err)
     defer conn.Close()
+
+    exists, info_file_path := pft.CheckIfPartiallyDownloaded(server, port, resource)
+    download := new(pft.Download)
+    if exists {
+        download = pft.LoadPartialDownload(info_file_path)
+    } else {
+        download = pft.InitDownload(server, port, resource)
+    }
+    fmt.Println(download)
 
     i := 1
     for {

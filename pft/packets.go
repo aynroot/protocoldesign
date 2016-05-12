@@ -21,7 +21,7 @@ func EncodeReqAck() [] byte {
     return nil
 }
 
-func DecodeReqAck() error {
+func DecodeReqAck() (error, string) {
     return errors.New("Not implemented"), ""
 }
 
