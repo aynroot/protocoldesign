@@ -84,14 +84,16 @@ func Client(port int, server string, resource string) {
     CheckError(err)
     defer conn.Close()
 
+    storage_dir := "./files"
     exists, info_file_path := pft.CheckIfPartiallyDownloaded(server, port, resource)
     download := new(pft.Download)
     if exists {
         download = pft.LoadPartialDownload(info_file_path)
     } else {
-        download = pft.InitDownload(server, port, resource)
+        download = pft.InitDownload(server, port, resource, storage_dir)
     }
     fmt.Println(download)
+    download.FinishDownload()
 
     i := 1
     for {

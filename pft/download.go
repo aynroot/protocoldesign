@@ -9,6 +9,8 @@ import (
     "io/ioutil"
     "encoding/gob"
     "bytes"
+    "path/filepath"
+    "errors"
 )
 
 
@@ -17,14 +19,15 @@ import (
 // a partial download file needs to save the rid, the size, the hash and the already downloaded data of the resource
 
 type Download struct {
-    server string
-    port int
-    rid string
-    size uint64
-    hash []byte
-    received_index uint32
-    requested_index uint32
-    local_file_path string
+    server                string
+    port                  int
+    rid                   string
+    size                  uint64
+    hash                  []byte
+    received_index        uint32
+    requested_index       uint32
+    partial_file_path     string
+    destination_file_path string
 }
 
 func check(e error) {
@@ -45,7 +48,8 @@ func (this *Download) GobEncode() ([]byte, error) {
     encoder.Encode(this.hash)
     encoder.Encode(this.received_index)
     encoder.Encode(this.requested_index)
-    encoder.Encode(this.local_file_path)
+    encoder.Encode(this.partial_file_path)
+    encoder.Encode(this.destination_file_path)
 
     return buffer.Bytes(), nil
 }
@@ -61,7 +65,8 @@ func (this *Download) GobDecode(data []byte) error {
     decoder.Decode(&this.hash)
     decoder.Decode(&this.received_index)
     decoder.Decode(&this.requested_index)
-    decoder.Decode(&this.local_file_path)
+    decoder.Decode(&this.partial_file_path)
+    decoder.Decode(&this.destination_file_path)
 
     return nil
 }
@@ -71,12 +76,19 @@ func (this *Download) GobDecode(data []byte) error {
 // else: set requested_index = received_index
 // returns true if the payload was written to disk
 func (this Download) HandleDataPacket(index uint32, payload []byte) bool {
+    if index == this.received_index + 1 {
+        // write payload to disk
+        // update received index
+    } else {
+        this.requested_index = this.received_index
+    }
+
     return false
 }
 
 // saves the internal variables to a prtial download file
 func (this Download) SavePartialDownload() {
-    file, err := os.Create(this.local_file_path + ".info")
+    file, err := os.Create(this.partial_file_path + ".info")
     check(err)
     defer file.Close()
 
@@ -109,6 +121,15 @@ func (this Download) IsFinished() bool {
     return (uint64) (this.received_index + 1) * 491 >= this.size
 }
 
+// moves temporary "partial" download to the final destination
+// deletes info files
+func (this Download) FinishDownload() {
+    err := os.Rename(this.partial_file_path, this.destination_file_path)
+    check(err)
+    err = os.Remove(this.partial_file_path + ".info")
+    check(err)
+}
+
 // creates get packet for requested_index + 1 (use encode function from packets.go)
 func (this Download) CreateNextGet() []byte {
     return nil
@@ -125,13 +146,17 @@ func CheckIfPartiallyDownloaded(server string, port int, rid string) (bool, stri
 
 
 // initiates the download: creates the partial download file, initializes variables
-func InitDownload(server string, port int, rid string) *Download {
+func InitDownload(server string, port int, rid string, storage_dir string) *Download {
     server_dir := fmt.Sprintf("./.pft/%s:%d", server, port)
     err := os.MkdirAll(server_dir, 0777)
     check(err)
 
     flat_rid := strings.Replace(rid, "/", ":", -1)
-    local_file_path := fmt.Sprintf("%s/%s", server_dir, flat_rid)
+    partial_file_path := fmt.Sprintf("%s/%s", server_dir, flat_rid)
+
+    destination_file_path, err := getDestinationFilePath(storage_dir, rid)
+    check(err)
+
     download_info := Download{
         server: server,
         port: port,
@@ -140,9 +165,30 @@ func InitDownload(server string, port int, rid string) *Download {
         hash: nil,
         received_index: 0,
         requested_index: 0,
-        local_file_path: local_file_path,
+        partial_file_path: partial_file_path,
+        destination_file_path: destination_file_path,
     }
+
     download_info.SavePartialDownload()
+    file, err := os.Create(download_info.partial_file_path)
+    check(err)
+    file.Close()
 
     return &download_info
+}
+
+
+func getDestinationFilePath(storage_dir string, rid string) (string, error) {
+    path := ""
+    if (strings.HasPrefix(rid, "file:")) {
+        filename := rid[5:len(rid)]
+        path = fmt.Sprintf("%s/%s", storage_dir, filename)
+    } else if (rid == "file-list") {
+        path = fmt.Sprintf("./.pft/file-list")
+    } else {
+        return path, errors.New("Unknown resource type")
+    }
+
+    err := os.MkdirAll(filepath.Dir(path), 0777)
+    return path, err
 }
