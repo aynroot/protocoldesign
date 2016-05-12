@@ -28,7 +28,8 @@ func (this download) LoadPartialDownload(file_path string) {
 }
 
 func (this download) IsFinished() bool {
-    return (this.received_index + 1) * 491 >= this.size
+    //return (this.received_index + 1) * 491 >= this.size
+    return false
 }
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)

@@ -1,44 +1,55 @@
 package main
 
 import (
-    "fmt"
-    "net"
-    "os"
-    "flag"
-    "strconv"
-    "time"
+	"fmt"
+	"net"
+	"os"
+	//"flag"
+	"strconv"
+	"time"
+	pft "./pft/"
 )
 
 func main() {
-    portArg := flag.Int("t", 6222, "port to contact/listen on")
-    serverModeArg := flag.Bool("s", false, "start in server mode")
-    fileArg := flag.String("f", "", "file to be downloaded")
-    flag.Parse()
 
-    if *serverModeArg && *fileArg != "" {
-        fmt.Println("can only download file in client mode")
-        return
-    }
+        //portArg := flag.Int("t", 6222, "port to contact/listen on")
+        //serverModeArg := flag.Bool("s", false, "start in server mode")
+        //fileArg := flag.String("f", "", "file to be downloaded")
+        //flag.Parse()
+        //
+        //if *serverModeArg && *fileArg != "" {
+        //fmt.Println("can only download file in client mode")
+        //return
+        //}
+        //
+        //resource := "file-list"
+        //if *fileArg != "" {
+        //resource = "file:" + *fileArg
+        //}
+        //
+        //fmt.Println("port:", *portArg)
+        //fmt.Println("server mode:", *serverModeArg)
+        //fmt.Println("server:", flag.Args())
+        //
+        //
+        //if *serverModeArg {
+        //Server(*portArg)
+        //} else {
+        //if len(flag.Args()) != 1 {
+        //    fmt.Println("need to supply exactly one target server in client mode")
+        //    return
+        //}
+        //Client(*portArg, flag.Args()[0], resource)
+        //}
 
-    resource := "file-list"
-    if *fileArg != "" {
-        resource = "file:" + *fileArg
-    }
 
-    fmt.Println("port:", *portArg)
-    fmt.Println("server mode:", *serverModeArg)
-    fmt.Println("server:", flag.Args())
+    _,sent := pft.EncodeReq("file:/tmp/foo.txt")
+    fmt.Println("Sent:", sent)
+
+    _, received := pft.DecodeReq(sent)
+    fmt.Println("Received:", received)
 
 
-    if *serverModeArg {
-        Server(*portArg)
-    } else {
-        if len(flag.Args()) != 1 {
-            fmt.Println("need to supply exactly one target server in client mode")
-            return
-        }
-        Client(*portArg, flag.Args()[0], resource)
-    }
 }
 
 
