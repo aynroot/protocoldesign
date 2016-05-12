@@ -9,7 +9,6 @@ import (
     "time"
 
     "./pft"
-    "log"
 )
 
 func main() {
