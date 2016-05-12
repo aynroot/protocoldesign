@@ -42,12 +42,64 @@ func main() {
         //Client(*portArg, flag.Args()[0], resource)
         //}
 
+    // REQ
+    _,req := pft.EncodeReq("file:/tmp/uno.txt")
+    fmt.Println("Sent REQ:", req)
 
-    _,sent := pft.EncodeReq("file:/tmp/foo.txt")
-    fmt.Println("Sent:", sent)
+    _, received_req, pt := pft.DecodeReq(req)
+    fmt.Println("Received REQ:", received_req, pt)
+    //
 
-    _, received := pft.DecodeReq(sent)
-    fmt.Println("Received:", received)
+    // PUSH
+    _,push := pft.EncodePush("file:/tmp/dos.txt")
+    fmt.Println("Sent PUSH:", push)
+
+    _, received_push, pt := pft.DecodePush(push)
+    fmt.Println("Received PUSH:", received_push, pt)
+    //
+
+    //NACK
+    _,nack := pft.EncodeNack()
+    fmt.Println("Sent NACK:", nack)
+
+    _, received_nack := pft.DecodeNack(nack)
+    fmt.Println("Received REQ:", received_nack)
+    //
+
+    //PUSH-ACK
+    _,push_ack := pft.EncodePushAck()
+    fmt.Println("Sent PUSH-ACK:", push_ack)
+
+    _, received_push_ack := pft.DecodePushAck(push_ack)
+    fmt.Println("Received PUSH-ACK:", received_push_ack)
+
+    //RST
+    _,rst := pft.EncodeRst()
+    fmt.Println("Sent RST:", rst)
+
+    _, received_rst := pft.DecodeRst(rst)
+    fmt.Println("Received RST:", received_rst)
+
+    //GET
+    _,get := pft.EncodeGet([4]byte{20,23,129,20})
+    fmt.Println("Sent GET:", get)
+
+    _, received_get, pt := pft.DecodeGet(get)
+    fmt.Println("Received GET:", received_get, pt)
+
+    //DATA
+    _,data := pft.EncodeData([4]byte{2},[491]byte{100,100})
+    fmt.Println("Sent DATA:", data)
+
+    _, received_data, block, pt := pft.DecodeData(data)
+    fmt.Println("Received DATA:", received_data, block,  pt)
+
+    //REQ-ACK
+    _,req_ack := pft.EncodeReqAck([8]byte{3,4,5,6})
+    fmt.Println("Sent REQ-ACK:", req_ack)
+
+    _, received_req_ack, resource_size, pt := pft.DecodeReqAck(req_ack)
+    fmt.Println("Received REQ-ACK:", received_req_ack, resource_size,  pt)
 
 
 }
