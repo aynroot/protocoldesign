@@ -25,6 +25,10 @@ func DecodeReqAck() (error, string) {
     return errors.New("Not implemented"), ""
 }
 
+func EncodeGet(block_index uint32) []byte {
+    return nil
+}
+
 
 
 // ... to be continued

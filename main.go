@@ -9,6 +9,7 @@ import (
     "time"
 
     "./pft"
+    "log"
 )
 
 func main() {
@@ -93,7 +94,8 @@ func Client(port int, server string, resource string) {
         download = pft.InitDownload(server, port, resource, storage_dir)
     }
     fmt.Println(download)
-    download.FinishDownload()
+
+    testDownload(*download)
 
     i := 1
     for {
@@ -102,5 +104,18 @@ func Client(port int, server string, resource string) {
         time.Sleep(time.Second)
     }
 
+}
+
+func testDownload(download pft.Download) {
+    // make sure to set PAYLOAD_SIZE = 5 in download.go and init download size as something small
+    var i uint32;
+    for i = 1; i < 10; i++ {
+        download.HandleDataPacket(i, []byte{115, 111, 109, 101, 10}) // write "some\n"
+        if (download.IsFinished()) {
+            download.FinishDownload()
+            log.Println("finished")
+            break
+        }
+    }
 }
 

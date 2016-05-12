@@ -30,6 +30,8 @@ type Download struct {
     destination_file_path string
 }
 
+const PAYLOAD_SIZE = 491
+
 func check(e error) {
     if e != nil {
         log.Fatal("Err: " + e.Error())
@@ -72,34 +74,46 @@ func (this *Download) GobDecode(data []byte) error {
 }
 
 
-// if index == received_index + 1: writes the payload to disk and updates received_index
-// else: set requested_index = received_index
 // returns true if the payload was written to disk
-func (this Download) HandleDataPacket(index uint32, payload []byte) bool {
+func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
     if index == this.received_index + 1 {
-        // write payload to disk
-        // update received index
+        file, err := os.OpenFile(this.partial_file_path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+        check(err)
+
+        n, err := file.Write(payload)
+        check(err)
+        log.Printf("payload: wrote %d bytes\n", n)
+        file.Close()
+
+        this.received_index = index;
+        this.SavePartialDownloadInfo() // NB: do it on timeout only
+
+        return true
     } else {
         this.requested_index = this.received_index
     }
-
     return false
 }
 
-// saves the internal variables to a prtial download file
-func (this Download) SavePartialDownload() {
+func (this *Download) HandleReqPacket(size uint64, hash []byte) {
+    this.size = size
+    this.hash = hash
+}
+
+// saves the internal variables to a partial download file
+func (this *Download) SavePartialDownloadInfo() {
     file, err := os.Create(this.partial_file_path + ".info")
     check(err)
     defer file.Close()
 
     buffer := bytes.Buffer{}
     encoder := gob.NewEncoder(&buffer)
-    err = encoder.Encode(&this)
+    err = encoder.Encode(this)
     check(err)
 
     n, err := file.Write(buffer.Bytes())
     check(err)
-    log.Printf("wrote %d bytes\n", n)
+    log.Printf("info: wrote %d bytes\n", n)
 }
 
 // loads the internal variables from a partial download file
@@ -117,13 +131,17 @@ func LoadPartialDownload(info_file_path string) *Download {
     return download_info
 }
 
-func (this Download) IsFinished() bool {
-    return (uint64) (this.received_index + 1) * 491 >= this.size
+func (this *Download) CheckHash(reference []byte) bool {
+    return bytes.Compare(this.hash, reference) == 0
+}
+
+func (this *Download) IsFinished() bool {
+    return (uint64) (this.received_index + 1) * PAYLOAD_SIZE >= this.size
 }
 
 // moves temporary "partial" download to the final destination
 // deletes info files
-func (this Download) FinishDownload() {
+func (this *Download) FinishDownload() {
     err := os.Rename(this.partial_file_path, this.destination_file_path)
     check(err)
     err = os.Remove(this.partial_file_path + ".info")
@@ -131,8 +149,10 @@ func (this Download) FinishDownload() {
 }
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)
-func (this Download) CreateNextGet() []byte {
-    return nil
+func (this *Download) CreateNextGet() []byte {
+    this.requested_index += 1
+    get := EncodeGet(this.requested_index)
+    return get
 }
 
 // checks if partial download already exists
@@ -169,7 +189,7 @@ func InitDownload(server string, port int, rid string, storage_dir string) *Down
         destination_file_path: destination_file_path,
     }
 
-    download_info.SavePartialDownload()
+    download_info.SavePartialDownloadInfo()
     file, err := os.Create(download_info.partial_file_path)
     check(err)
     file.Close()
