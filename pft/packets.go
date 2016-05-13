@@ -4,7 +4,8 @@ import (
     //"errors"
     "encoding/binary"
     "bytes"
-    "crypto/sha3"
+    "golang.org/x/crypto/sha3"
+    "errors"
 )
 
 
@@ -74,6 +75,7 @@ func GetSha3 (p_type [1]byte, field []byte) [16]byte {
     return hash
 }
 
+
 func ResourceHash (p_type [1]byte, resource_size [8]byte) [32]byte {
 
     var res_hash  [32]byte
@@ -94,39 +96,48 @@ func ResourceHash (p_type [1]byte, resource_size [8]byte) [32]byte {
 }
 
 
-func EncodeReq (rid string) (error, []byte) {
+// calculates hash and concatenates packet to single []byte
+func MakePacket(packet_type byte, payload []byte) []byte {
+    content := append([]byte{packet_type}, payload...)
+    hash := sha3.Sum256(content)
+    return append(hash[:16], content...)
+}
 
-    var rid_bytes   [495]byte
-    packet_type := [1]byte{1}
-    temp := make([]byte, 495)
+func VerifyPacket(packet []byte) bool {
+    hash := sha3.Sum256(packet[16:])
+    return bytes.Equal(packet[:16], hash[:16])
+}
 
-    if (len(rid) < 495) {
-        // Getting the characters to the fixed size binary array
-        for i := 0; i < len(rid); i++ {
-            rid_bytes[i] = rid[i]
-        }
-        temp = rid_bytes[:]
-        hash := GetSha3(packet_type,  temp)
+func ToBigEndian(num uint32) []byte {
+    num_big_endian := make([]byte, 4)
+    binary.BigEndian.PutUint32(num_big_endian, num)
+    return num_big_endian
+}
 
-        encode := Req{hash, packet_type, rid_bytes}
-        buf := new(bytes.Buffer)
-        err := binary.Write(buf, binary.BigEndian, &encode)
+func EncodeReq (rid string) []byte {
+    return MakePacket(1, []byte(rid))
+}
 
-        return err, buf.Bytes()
+func DecodeReq(packet []byte) (error, string) {
+    if len(packet) <= 17 { // 17 is length of hash + type
+        return errors.New("packet too short"), ""
     }
 
-    return nil, nil // If the sanity check is not passed
+    return nil, string(packet[17:])
 }
 
-func DecodeReq(packet []byte) (error, string, [1]byte) {
-
-    var decoded Req
-    err := binary.Read(bytes.NewReader(packet), binary.BigEndian, &decoded)
-
-    result := string(bytes.Trim(decoded.F3[:495], "\x00"))
-    return err, result, decoded.F2
-
+func EncodeData (block_index uint32, data_block []byte) []byte {
+    return MakePacket(7, append(ToBigEndian(block_index), data_block...))
 }
+
+func DecodeData(packet []byte) (error, uint32, []byte) {
+    if len(packet) <= 21 { // 21 is length of hash + type + data_block
+        return errors.New("packet too short"), 0, nil
+    }
+
+    return nil, binary.BigEndian.Uint32(packet[17:21]), packet[21:]
+}
+
 
 
 func EncodeNack () (error, []byte) {
@@ -249,31 +260,6 @@ func DecodeGet(packet []byte) (error, [4]byte, [1]byte) {
     err := binary.Read(bytes.NewReader(packet), binary.BigEndian, &decoded)
 
     return err, decoded.F3, decoded.F2
-
-}
-
-
-func EncodeData (block_index [4]byte, data_block [491]byte) (error, []byte) {
-
-    packet_type := [1]byte{7}
-    temp := make([]byte, 491)
-
-    temp = data_block[:]
-    hash := GetSha3(packet_type,  temp)
-
-    encode := Data{hash, packet_type, block_index, data_block}
-    buf := new(bytes.Buffer)
-    err := binary.Write(buf, binary.BigEndian, &encode)
-
-    return err, buf.Bytes()
-}
-
-func DecodeData(packet []byte) (error, [491]byte, [4]byte, [1]byte) {
-
-    var decoded Data
-    err := binary.Read(bytes.NewReader(packet), binary.BigEndian, &decoded)
-
-    return err, decoded.F4, decoded.F3, decoded.F2
 
 }
 

@@ -43,11 +43,13 @@ func main() {
         //}
 
     // REQ
-    _,req := pft.EncodeReq("file:/tmp/uno.txt")
+    req := pft.EncodeReq("file:/tmp/uno.txt")
     fmt.Println("Sent REQ:", req)
 
-    _, received_req, pt := pft.DecodeReq(req)
-    fmt.Println("Received REQ:", received_req, pt)
+    fmt.Println("REQ HASH ok:", pft.VerifyPacket(req))
+
+    _, resource := pft.DecodeReq(req)
+    fmt.Println("Received REQ:", resource)
     //
 
     // PUSH
@@ -88,11 +90,13 @@ func main() {
     fmt.Println("Received GET:", received_get, pt)
 
     //DATA
-    _,data := pft.EncodeData([4]byte{2},[491]byte{100,100})
+    data := pft.EncodeData(123456789, []byte{9, 8, 7, 6, 5, 4, 3, 2, 1})
     fmt.Println("Sent DATA:", data)
 
-    _, received_data, block, pt := pft.DecodeData(data)
-    fmt.Println("Received DATA:", received_data, block,  pt)
+    fmt.Println("DATA hash ok: ", pft.VerifyPacket(data))
+
+    _, block, data := pft.DecodeData(data)
+    fmt.Println("Received DATA:", block,  data)
 
     //REQ-ACK
     _,req_ack := pft.EncodeReqAck([8]byte{3,4,5,6})
