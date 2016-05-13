@@ -81,7 +81,7 @@ func Client(port int, server string, resource string) {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     CheckError(err)
 
-    conn, err := net.DialUDP("udp", local_addr, server_addr)
+    conn, err := net.ListenUDP("udp", local_addr)
     CheckError(err)
     defer conn.Close()
 
@@ -99,7 +99,7 @@ func Client(port int, server string, resource string) {
 
     i := 1
     for {
-        conn.Write([]byte(strconv.Itoa(i)))
+        conn.WriteToUDP([]byte(strconv.Itoa(i)), server_addr)
         i += 1
         time.Sleep(time.Second)
     }
