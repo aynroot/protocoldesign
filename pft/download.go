@@ -114,27 +114,6 @@ func (this *Download) SavePartialDownloadInfo() {
 	log.Printf("info: wrote %d bytes\n", n)
 }
 
-func (this *Download) HandleReqPacket(size uint64, hash []byte) {
-	this.size = size
-	this.hash = hash
-}
-
-// saves the internal variables to a partial download file
-func (this *Download) SavePartialDownloadInfo() {
-	file, err := os.Create(this.partial_file_path + ".info")
-	check(err)
-	defer file.Close()
-
-	buffer := bytes.Buffer{}
-	encoder := gob.NewEncoder(&buffer)
-	err = encoder.Encode(this)
-	check(err)
-
-	n, err := file.Write(buffer.Bytes())
-	check(err)
-	log.Printf("info: wrote %d bytes\n", n)
-}
-
 // loads the internal variables from a partial download file
 func LoadPartialDownload(info_file_path string) *Download {
 	data, err := ioutil.ReadFile(info_file_path)
@@ -169,8 +148,10 @@ func (this *Download) FinishDownload() {
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)
 func (this *Download) CreateNextGet() []byte {
+
 	this.requested_index += 1
 	get := EncodeGet(this.requested_index)
+	log.Println(this.requested_index)
 	return get
 }
 

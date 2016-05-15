@@ -8,13 +8,15 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+const DATABLOCK_SIZE = 491
+
 // file path is absolute
 func GetFileDataBlock(file_path string, index uint32) []byte {
 	f, err := os.Open(file_path)
 	check(err)
 	defer f.Close()
 
-	o2, err := f.Seek(int64(index), 0)
+	o2, err := f.Seek(int64((index - 1) * DATABLOCK_SIZE), 0)
 	check(err)
 	data_block := make([]byte, DATABLOCK_SIZE)        //Todo: Check for end of file error
 	n1, err := f.Read(data_block)
