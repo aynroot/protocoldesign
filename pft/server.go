@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type server struct {
@@ -26,6 +27,19 @@ func initServer(conn *net.UDPConn) *server {
 		state:           CLOSED,
 		conn:            conn,
 	}
+}
+
+func (this *server) checkNetError(err error) error {
+	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+		log.Println(neterr)
+
+		this.state = CLOSED
+		this.conn.Close()
+		return neterr
+	} else {
+		CheckError(err)
+	}
+	return nil
 }
 
 func (this *server) handleReq(packet []byte, packet_size int, sender_addr *net.UDPAddr) error {
@@ -105,18 +119,26 @@ func Server(port int) {
 	fmt.Println("listening on", addr)
 	defer conn.Close()
 
+	conn.SetDeadline(time.Now().Add(time.Second * 10))
+
 	server := *initServer(conn)
 	for {
 		if server.state == CLOSED {
 			buf := make([]byte, UDP_BUFFER_SIZE)
 			packet_size, sender_addr, err := server.conn.ReadFromUDP(buf)
-			CheckError(err)
+			if err != nil {
+				server.checkNetError(err)
+				continue
+			}
 
 			server.handleReq(buf, packet_size, sender_addr)
 		} else if server.state == OPEN {
 			buf := make([]byte, UDP_BUFFER_SIZE)
 			packet_size, sender_addr, err := server.conn.ReadFromUDP(buf)
-			CheckError(err)
+			if err != nil {
+				server.checkNetError(err)
+				continue
+			}
 
 			err = server.handleGet(buf, packet_size, sender_addr)
 			if err != nil { // REQ received

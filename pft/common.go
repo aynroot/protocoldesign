@@ -28,6 +28,6 @@ const UDP_BUFFER_SIZE = 512
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
-		os.Exit(0)
+		os.Exit(1)
 	}
 }

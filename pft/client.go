@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
+	"os"
 )
 
 type client struct {
@@ -30,6 +32,20 @@ func initClient(conn *net.UDPConn, server_addr *net.UDPAddr, resource string) *c
 	}
 }
 
+func (this *client) checkNetError(err error) error {
+	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+		log.Println(neterr)
+
+		this.download.SavePartialDownloadInfo()
+		this.state = CLOSED
+		this.conn.Close()
+		return neterr
+	} else {
+		CheckError(err)
+	}
+	return nil
+}
+
 func (this *client) sendReq(server string, port int) {
 	exists, info_file_path := CheckIfPartiallyDownloaded(server, port, this.resource)
 	if exists {
@@ -45,18 +61,14 @@ func (this *client) sendReq(server string, port int) {
 	this.state = HALF_OPEN
 }
 
-func (this *client) handleReqResponse() error {
-	buf := make([]byte, UDP_BUFFER_SIZE)
-	packet_size, _, err := this.conn.ReadFromUDP(buf)
-	CheckError(err)
-
-	if !VerifyPacket(buf, packet_size) {
+func (this *client) handleReqResponse(packet []byte, packet_size int) error {
+	if !VerifyPacket(packet, packet_size) {
 		log.Println("Verification (REQ_ACK) failed")
 		return nil
 	}
-	packet_type := GetPacketType(buf)
+	packet_type := GetPacketType(packet)
 	if packet_type == REQ_ACK {
-		err, size, hash := DecodeReqAck(buf, packet_size)
+		err, size, hash := DecodeReqAck(packet, packet_size)
 		CheckError(err)
 
 		this.download.HandleReqPacket(uint64(size), hash)
@@ -78,7 +90,9 @@ func (this *client) receiveData() error {
 
 	buf := make([]byte, UDP_BUFFER_SIZE)
 	packet_size, _, err := this.conn.ReadFromUDP(buf)
-	CheckError(err)
+	if err != nil {
+		return this.checkNetError(err)
+	}
 
 	if !VerifyPacket(buf, packet_size) {
 		log.Println("Verification (DATA) failed")
@@ -104,7 +118,7 @@ func (this *client) receiveData() error {
 		} else {
 			fmt.Printf("%s is successfully downloaded.\n", this.resource)
 		}
-		return errors.New("Finish")
+		os.Exit(0)
 	}
 	return nil
 }
@@ -120,17 +134,29 @@ func Client(port int, server string, resource string) {
 	CheckError(err)
 	defer conn.Close()
 
+	conn.SetDeadline(time.Now().Add(time.Second * 10))
+
 	client := *initClient(conn, server_addr, resource)
 	for {
 		if client.state == CLOSED {
 			client.sendReq(server, port)
 		}
 		if client.state == HALF_OPEN {
-			client.handleReqResponse()
+			buf := make([]byte, UDP_BUFFER_SIZE)
+			packet_size, _, err := client.conn.ReadFromUDP(buf)
+			if err != nil {
+				if client.checkNetError(err) != nil {
+					fmt.Println("Network timeout")
+					os.Exit(0)
+				}
+			}
+
+			client.handleReqResponse(buf, packet_size)
 		} else if client.state == OPEN {
 			err = client.receiveData()
 			if err != nil {
-				break
+				fmt.Println("Network timeout")
+				os.Exit(0)
 			}
 		}
 	}

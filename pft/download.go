@@ -92,8 +92,6 @@ func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
 		file.Close()
 
 		this.received_index = index
-		this.SavePartialDownloadInfo() // NB: do it on timeout only
-
 		return true
 	} else {
 		this.requested_index = this.received_index
@@ -108,6 +106,7 @@ func (this *Download) HandleReqPacket(size uint64, hash []byte) {
 
 // saves the internal variables to a partial download file
 func (this *Download) SavePartialDownloadInfo() {
+	this.requested_index = this.received_index
 	file, err := os.Create(this.partial_file_path + ".info")
 	CheckError(err)
 	defer file.Close()
