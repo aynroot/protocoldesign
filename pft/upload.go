@@ -16,16 +16,13 @@ func GetFileDataBlock(file_path string, index uint32) []byte {
 	check(err)
 	defer f.Close()
 
-	o2, err := f.Seek(int64((index - 1) * DATABLOCK_SIZE), 0)
+	_, err = f.Seek(int64((index - 1) * DATABLOCK_SIZE), 0)
 	check(err)
-	data_block := make([]byte, DATABLOCK_SIZE)        //Todo: Check for end of file error
-	n1, err := f.Read(data_block)
+	data_block := make([]byte, DATABLOCK_SIZE)
+	n, err := f.Read(data_block)
 	check(err)
 
-	fmt.Print("\n")
-	fmt.Printf("%d bytes @ %d: %s\n", n1, o2, string(data_block))
-
-	return data_block
+	return data_block[:n]
 }
 
 func GetFileHash(file_path string) []byte {

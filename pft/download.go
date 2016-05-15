@@ -134,7 +134,7 @@ func (this *Download) CheckHash(reference []byte) bool {
 }
 
 func (this *Download) IsFinished() bool {
-	return (uint64)(this.received_index+1)*PAYLOAD_SIZE >= this.size
+	return uint64(this.received_index * PAYLOAD_SIZE) >= this.size
 }
 
 // moves temporary "partial" download to the final destination
