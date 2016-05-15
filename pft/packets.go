@@ -21,8 +21,8 @@ func MakePacket(packet_type byte, payload []byte) []byte {
 	return append(hash[:16], content...)
 }
 
-func VerifyPacket(packet []byte) bool {
-	hash := sha3.Sum256(packet[16:])
+func VerifyPacket(packet []byte, size int) bool {
+	hash := sha3.Sum256(packet[16:size])
 	return bytes.Equal(packet[:16], hash[:16])
 }
 
