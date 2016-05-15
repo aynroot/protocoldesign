@@ -3,18 +3,110 @@ package pft
 import (
 	"log"
 	"fmt"
-	"os"
 	"net"
 	"strconv"
+	"errors"
 )
 
-const UDP_BUFFER_SIZE = 512
+type client struct {
+	server_addr *net.UDPAddr
+	storage_dir string
+	state int
+	conn *net.UDPConn
+	download *Download
+	resource string
+	get_next bool
+}
 
-func CheckError(err error) {
-	if err != nil {
-		fmt.Println("Error: ", err)
-		os.Exit(0)
+func initClient(conn *net.UDPConn, server_addr *net.UDPAddr, resource string) *client {
+	return &client{
+		server_addr: server_addr,
+		storage_dir: "./client_files",
+		state: CLOSED,
+		conn: conn,
+		download: nil,
+		resource: resource,
+		get_next: true,
 	}
+}
+
+func (this *client) sendReq(server string, port int) {
+	exists, info_file_path := CheckIfPartiallyDownloaded(server, port, this.resource)
+	if exists {
+		this.download = LoadPartialDownload(info_file_path)
+	} else {
+		this.download = InitDownload(server, port, this.resource, this.storage_dir)
+	}
+	log.Println(this.download)
+
+	req := EncodeReq(this.resource)
+	this.conn.WriteToUDP(req, this.server_addr)
+	log.Println("Sent REQ:", req)
+	this.state = HALF_OPEN
+}
+
+func (this *client) handleReqResponse() error {
+	buf := make([]byte, UDP_BUFFER_SIZE)
+	packet_size, _, err := this.conn.ReadFromUDP(buf)
+	CheckError(err)
+
+	if !VerifyPacket(buf, packet_size) {
+		log.Println("Verification (REQ_ACK) failed")
+		return nil
+	}
+	packet_type := GetPacketType(buf)
+	if packet_type == REQ_ACK {
+		err, size, hash := DecodeReqAck(buf, packet_size)
+		CheckError(err)
+
+		this.download.HandleReqPacket(uint64(size), hash)
+		this.state = OPEN
+	} else if packet_type == NACK {
+		this.state = CLOSED
+	} else {
+		CheckError(errors.New("undeexpected packet type"))
+	}
+	return nil
+}
+
+func (this *client) receiveData() error {
+	if this.get_next {
+		get := this.download.CreateNextGet()
+		this.conn.WriteToUDP(get, this.server_addr)
+		log.Println("Sent GET:", get)
+	}
+
+	buf := make([]byte, UDP_BUFFER_SIZE)
+	packet_size, _, err := this.conn.ReadFromUDP(buf)
+	CheckError(err)
+
+	if !VerifyPacket(buf, packet_size) {
+		log.Println("Verification (DATA) failed")
+		return nil
+	}
+	err, index, data := DecodeData(buf, packet_size)
+	CheckError(err)
+
+	this.get_next = true
+	if (!this.download.HandleDataPacket(index, data)) {
+		log.Println("Data is not written on disk")
+		this.get_next = false
+	}
+	if this.download.IsFinished() {
+		this.download.FinishDownload()
+		if this.resource == "file-list" {
+			file_list, err := ReturnFileList()
+			CheckError(err)
+			fmt.Println("Files on server:")
+			for _, f := range file_list {
+				fmt.Println("\t" + f)
+			}
+		} else {
+			fmt.Printf("%s is successfully downloaded.\n", this.resource)
+		}
+		return errors.New("Finish")
+	}
+	return nil
 }
 
 func Client(port int, server string, resource string) {
@@ -28,85 +120,16 @@ func Client(port int, server string, resource string) {
 	CheckError(err)
 	defer conn.Close()
 
-	current_state := CLOSED
-
-	get_next := true
-	var download *Download
+	client := *initClient(conn, server_addr, resource)
 	for {
-		if current_state == CLOSED {
-			storage_dir := "./client_files"
-			exists, info_file_path := CheckIfPartiallyDownloaded(server, port, resource)
-			download = new(Download)
-			if exists {
-				download = LoadPartialDownload(info_file_path)
-			} else {
-				download = InitDownload(server, port, resource, storage_dir)
-			}
-			log.Println(download)
-
-			req := EncodeReq(resource)
-			conn.WriteToUDP(req, server_addr)
-			log.Println("Sent REQ:", req)
-			current_state = HALF_OPEN
+		if client.state == CLOSED {
+			client.sendReq(server, port)
 		}
-		if current_state == HALF_OPEN {
-			buf := make([]byte, UDP_BUFFER_SIZE)
-			packet_size, _, err := conn.ReadFromUDP(buf)
-			CheckError(err)
-
-			if !VerifyPacket(buf, packet_size) {
-				log.Println("Verification (REQ_ACK) failed")
-				continue
-			}
-			packet_type := GetPacketType(buf)
-			if packet_type == REQ_ACK {
-				err, size, hash := DecodeReqAck(buf, packet_size)
-				CheckError(err)
-
-				download.HandleReqPacket(uint64(size), hash)
-				current_state = OPEN
-			} else if packet_type == NACK {
-				current_state = CLOSED
-			} else {
-				fmt.Println("Error: undeexpected packet type")
-				os.Exit(0)
-			}
-
-		} else if current_state == OPEN {
-			if get_next {
-				get := download.CreateNextGet()
-				conn.WriteToUDP(get, server_addr)
-				log.Println("Sent GET:", get)
-			}
-
-			buf := make([]byte, UDP_BUFFER_SIZE)
-			packet_size, _, err := conn.ReadFromUDP(buf)
-			CheckError(err)
-
-			if !VerifyPacket(buf, packet_size) {
-				log.Println("Verification (DATA) failed")
-				continue
-			}
-			err, index, data := DecodeData(buf, packet_size)
-			CheckError(err)
-
-			get_next = true
-			if (!download.HandleDataPacket(index, data)) {
-				log.Println("Data is not written on disk")
-				get_next = false
-			}
-			if download.IsFinished() {
-				download.FinishDownload()
-				if resource == "file-list" {
-					file_list, err := ReturnFileList()
-					CheckError(err)
-					fmt.Println("Files on server:")
-					for _, f := range file_list {
-						fmt.Println("\t" + f)
-					}
-				} else {
-					fmt.Println("%s is successfully downloaded.", resource)
-				}
+		if client.state == HALF_OPEN {
+			client.handleReqResponse()
+		} else if client.state == OPEN {
+			err = client.receiveData()
+			if err != nil {
 				break
 			}
 		}

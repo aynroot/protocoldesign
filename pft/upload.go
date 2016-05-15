@@ -9,26 +9,24 @@ import (
 	"math"
 )
 
-const DATABLOCK_SIZE = 491
-
 // file path is absolute
 func GetFileDataBlock(file_path string, index uint32) []byte {
 	f, err := os.Open(file_path)
-	check(err)
+	CheckError(err)
 	defer f.Close()
 
-	_, err = f.Seek(int64((index - 1) * DATABLOCK_SIZE), 0)
-	check(err)
-	data_block := make([]byte, DATABLOCK_SIZE)
+	_, err = f.Seek(int64((index - 1) * DATA_BLOCK_SIZE), 0)
+	CheckError(err)
+	data_block := make([]byte, DATA_BLOCK_SIZE)
 	n, err := f.Read(data_block)
-	check(err)
+	CheckError(err)
 
 	return data_block[:n]
 }
 
 func GetFileHash(file_path string) []byte {
 	file_data, err := ioutil.ReadFile(file_path)
-	check(err)      //Todo: What to do on error (file not available)?
+	CheckError(err)
 
 	hash := sha3.Sum256(file_data)
 	return hash[:]
@@ -51,14 +49,12 @@ func getFileList(storage_dir string) []byte {
 // dir_path contains the path to the directory of which files are served, those are to be listed in the file-list
 func GetFileListDataBlock(storage_dir string, index uint32) []byte {
 	file_list := getFileList(storage_dir)
-	data_block := file_list[int(index - 1) * DATABLOCK_SIZE : int(math.Min(float64(index) * DATABLOCK_SIZE, float64(len(file_list))))]
+	data_block := file_list[int(index - 1) * DATA_BLOCK_SIZE : int(math.Min(float64(index) * DATA_BLOCK_SIZE, float64(len(file_list))))]
 	return data_block
 }
 
 func GetFileListSizeAndHash(storage_dir string) (uint64, []byte) {
 	file_list := getFileList(storage_dir)
-
-	//TODO: what if file-list changed?
 	hash := sha3.Sum256(file_list)
 	return uint64(len(file_list)), hash[:]
 }
