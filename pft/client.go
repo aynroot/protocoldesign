@@ -1,32 +1,32 @@
 package pft
 
 import (
-	"log"
+	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
-	"errors"
 )
 
 type client struct {
 	server_addr *net.UDPAddr
 	storage_dir string
-	state int
-	conn *net.UDPConn
-	download *Download
-	resource string
-	get_next bool
+	state       int
+	conn        *net.UDPConn
+	download    *Download
+	resource    string
+	get_next    bool
 }
 
 func initClient(conn *net.UDPConn, server_addr *net.UDPAddr, resource string) *client {
 	return &client{
 		server_addr: server_addr,
 		storage_dir: "./client_files",
-		state: CLOSED,
-		conn: conn,
-		download: nil,
-		resource: resource,
-		get_next: true,
+		state:       CLOSED,
+		conn:        conn,
+		download:    nil,
+		resource:    resource,
+		get_next:    true,
 	}
 }
 
@@ -88,7 +88,7 @@ func (this *client) receiveData() error {
 	CheckError(err)
 
 	this.get_next = true
-	if (!this.download.HandleDataPacket(index, data)) {
+	if !this.download.HandleDataPacket(index, data) {
 		log.Println("Data is not written on disk")
 		this.get_next = false
 	}
@@ -110,7 +110,7 @@ func (this *client) receiveData() error {
 }
 
 func Client(port int, server string, resource string) {
-	server_addr, err := net.ResolveUDPAddr("udp", server + ":" + strconv.Itoa(port))
+	server_addr, err := net.ResolveUDPAddr("udp", server+":"+strconv.Itoa(port))
 	CheckError(err)
 
 	local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")

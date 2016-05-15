@@ -1,30 +1,30 @@
 package pft
 
 import (
-	"log"
-	"strings"
-	"fmt"
-	"os"
-	"net"
-	"strconv"
 	"errors"
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"strconv"
+	"strings"
 )
 
 type server struct {
-	storage_dir string
+	storage_dir     string
 	local_file_path string
-	file_list_mode bool
-	state int
-	conn *net.UDPConn
+	file_list_mode  bool
+	state           int
+	conn            *net.UDPConn
 }
 
 func initServer(conn *net.UDPConn) *server {
 	return &server{
-		storage_dir: "./server_files",
+		storage_dir:     "./server_files",
 		local_file_path: "",
-		file_list_mode: false,
-		state: CLOSED,
-		conn: conn,
+		file_list_mode:  false,
+		state:           CLOSED,
+		conn:            conn,
 	}
 }
 
@@ -97,7 +97,7 @@ func (this *server) handleGet(packet []byte, packet_size int, sender_addr *net.U
 }
 
 func Server(port int) {
-	addr, err := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(port))
+	addr, err := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 	CheckError(err)
 
 	conn, err := net.ListenUDP("udp", addr)
