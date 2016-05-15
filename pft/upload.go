@@ -1,11 +1,12 @@
 package pft
 
 import (
-	"fmt"
 	"os"
 	"io/ioutil"
 
 	"golang.org/x/crypto/sha3"
+	"strings"
+	"math"
 )
 
 const DATABLOCK_SIZE = 491
@@ -33,66 +34,31 @@ func GetFileHash(file_path string) []byte {
 	return hash[:]
 }
 
+func getFileList(storage_dir string) []byte {
+	files, _ := ioutil.ReadDir(storage_dir)
+
+	var file_names []string
+	for _, f := range files {
+		file_names = append(file_names, f.Name())
+	}
+	files_string := strings.Join(file_names, "\n")
+	files_array := []byte(files_string)
+
+	//TODO: what if file-list changed?
+	return files_array
+}
+
 // dir_path contains the path to the directory of which files are served, those are to be listed in the file-list
-func GetFileListDataBlock(dir_path string, index uint32) []byte {
-	var files_string string
-	files, _ := ioutil.ReadDir(dir_path)
-	for _, f := range files {
-		files_string += f.Name()        //Todo: Add some separator? Add all filenames are presented, index and blocksize could be used to reduce the process
-	}
-	var files_array = []byte(files_string)
-	//Check out of bounds
-	if (int(index + DATABLOCK_SIZE - 1) < len(files_array)) {
-		return nil      //TODO: Throw an error (out of bounds)
-	}
-	fmt.Print("\n")
-	var truncatedFileListDataBlock = files_array[int(index) * DATABLOCK_SIZE:int(index) * DATABLOCK_SIZE + DATABLOCK_SIZE]
-	fmt.Print(string(truncatedFileListDataBlock))
-	return truncatedFileListDataBlock
+func GetFileListDataBlock(storage_dir string, index uint32) []byte {
+	file_list := getFileList(storage_dir)
+	data_block := file_list[int(index - 1) * DATABLOCK_SIZE : int(math.Min(float64(index) * DATABLOCK_SIZE, float64(len(file_list))))]
+	return data_block
 }
 
-func GetFileListHash(dir_path string, index uint32) []byte {
-	var files_string string
-	files, _ := ioutil.ReadDir(dir_path)
-	for _, f := range files {
-		files_string += f.Name()        //Todo: Add some separator?
-	}
+func GetFileListSizeAndHash(storage_dir string) (uint64, []byte) {
+	file_list := getFileList(storage_dir)
 
-	fmt.Println(files_string)
-	var files_array = []byte(files_string)
-	//Check out of bounds
-	if (int(index + DATABLOCK_SIZE - 1) < len(files_array)) {
-		return nil      //TODO: Throw an error (out of bounds)
-	}
-	files_array = files_array[int(index) * DATABLOCK_SIZE:int(index) * DATABLOCK_SIZE + DATABLOCK_SIZE]
-
-	hash := sha3.Sum256(files_array)
-	var truncatedHash = hash[:16]
-
-	return truncatedHash
-}
-
-func TestUploadFunc() {
-	//pft.GetFileHash("/tmp/dat/test.txt")
-	pwd, _ := os.Getwd()
-
-
-	//Get File Hash
-	fmt.Print("Get File Hash\n")
-	GetFileHash(pwd + "/tmp/dat/test.txt")
-
-	//Get File DataBlock
-	fmt.Print("Get File DataBlock\n")
-	GetFileDataBlock(pwd + "/tmp/dat/test.txt", 0)
-	GetFileDataBlock(pwd + "/tmp/dat/test.txt", 1)
-
-	//Get File List Hash
-	fmt.Print("Get File List Hash\n")
-	GetFileListHash(pwd + "/tmp/dat/", 0)
-
-	//Load File List DataBlock
-	fmt.Print("Load File List DataBlock\n")
-	GetFileListDataBlock(pwd + "/tmp/dat/", 0)
-	GetFileListDataBlock(pwd + "/tmp/dat/", 10)
-
+	//TODO: what if file-list changed?
+	hash := sha3.Sum256(file_list)
+	return uint64(len(file_list)), hash[:]
 }

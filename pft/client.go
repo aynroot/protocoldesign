@@ -97,7 +97,16 @@ func Client(port int, server string, resource string) {
 			}
 			if download.IsFinished() {
 				download.FinishDownload()
-				fmt.Println("Download is successfully finished.")
+				if resource == "file-list" {
+					file_list, err := ReturnFileList()
+					CheckError(err)
+					fmt.Println("Files on server:")
+					for _, f := range file_list {
+						fmt.Println("\t" + f)
+					}
+				} else {
+					fmt.Println("%s is successfully downloaded.", resource)
+				}
 				break
 			}
 		}

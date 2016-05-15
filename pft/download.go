@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"path/filepath"
+	"bufio"
 )
 
 // this packet deals with resource downloads
@@ -72,10 +73,26 @@ func (this *Download) GobDecode(data []byte) error {
 	return nil
 }
 
+func ReturnFileList() ([]string, error) {
+	path := fmt.Sprintf("./.pft/file-list")
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
+
 // returns true if the payload was written to disk
 func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
 	if index == this.received_index + 1 {
-		file, err := os.OpenFile(this.partial_file_path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		file, err := os.OpenFile(this.partial_file_path, os.O_APPEND | os.O_WRONLY | os.O_CREATE, 0600)
 		check(err)
 
 		n, err := file.Write(payload)
