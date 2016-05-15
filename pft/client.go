@@ -1,4 +1,4 @@
-package main
+package pft
 
 import (
 	"log"
@@ -6,8 +6,16 @@ import (
 	"os"
 	"net"
 	"strconv"
-	"github.com/aynroot/protocoldesign/pft"
 )
+
+const UDP_BUFFER_SIZE = 512
+
+func CheckError(err error) {
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(0)
+	}
+}
 
 func Client(port int, server string, resource string) {
 	server_addr, err := net.ResolveUDPAddr("udp", server + ":" + strconv.Itoa(port))
@@ -20,51 +28,51 @@ func Client(port int, server string, resource string) {
 	CheckError(err)
 	defer conn.Close()
 
-	current_state := pft.CLOSED
+	current_state := CLOSED
 
 	get_next := true
-	var download *pft.Download
+	var download *Download
 	for {
-		if current_state == pft.CLOSED {
+		if current_state == CLOSED {
 			storage_dir := "./client_files"
-			exists, info_file_path := pft.CheckIfPartiallyDownloaded(server, port, resource)
-			download = new(pft.Download)
+			exists, info_file_path := CheckIfPartiallyDownloaded(server, port, resource)
+			download = new(Download)
 			if exists {
-				download = pft.LoadPartialDownload(info_file_path)
+				download = LoadPartialDownload(info_file_path)
 			} else {
-				download = pft.InitDownload(server, port, resource, storage_dir)
+				download = InitDownload(server, port, resource, storage_dir)
 			}
 			log.Println(download)
 
-			req := pft.EncodeReq(resource)
+			req := EncodeReq(resource)
 			conn.WriteToUDP(req, server_addr)
 			log.Println("Sent REQ:", req)
-			current_state = pft.HALF_OPEN
+			current_state = HALF_OPEN
 		}
-		if current_state == pft.HALF_OPEN {
+		if current_state == HALF_OPEN {
 			buf := make([]byte, UDP_BUFFER_SIZE)
 			packet_size, _, err := conn.ReadFromUDP(buf)
 			CheckError(err)
 
-			if !pft.VerifyPacket(buf, packet_size) {
+			if !VerifyPacket(buf, packet_size) {
 				log.Println("Verification (REQ_ACK) failed")
 				continue
 			}
-			packet_type := pft.GetPacketType(buf)
-			if packet_type == pft.REQ {
-				err, size, hash := pft.DecodeReqAck(buf, packet_size)
+			packet_type := GetPacketType(buf)
+			if packet_type == REQ_ACK {
+				err, size, hash := DecodeReqAck(buf, packet_size)
 				CheckError(err)
 
 				download.HandleReqPacket(uint64(size), hash)
-				current_state = pft.OPEN
-			} else if packet_type == pft.NACK {
-				current_state = pft.CLOSED
+				current_state = OPEN
+			} else if packet_type == NACK {
+				current_state = CLOSED
 			} else {
 				fmt.Println("Error: undeexpected packet type")
 				os.Exit(0)
 			}
 
-		} else if current_state == pft.OPEN {
+		} else if current_state == OPEN {
 			if get_next {
 				get := download.CreateNextGet()
 				conn.WriteToUDP(get, server_addr)
@@ -75,11 +83,11 @@ func Client(port int, server string, resource string) {
 			packet_size, _, err := conn.ReadFromUDP(buf)
 			CheckError(err)
 
-			if !pft.VerifyPacket(buf, packet_size) {
+			if !VerifyPacket(buf, packet_size) {
 				log.Println("Verification (DATA) failed")
 				continue
 			}
-			err, index, data := pft.DecodeData(buf, packet_size)
+			err, index, data := DecodeData(buf, packet_size)
 			CheckError(err)
 
 			get_next = true

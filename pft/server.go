@@ -1,4 +1,4 @@
-package main
+package pft
 
 import (
 	"log"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"net"
 	"strconv"
-	"github.com/aynroot/protocoldesign/pft"
 )
 
 
@@ -20,19 +19,19 @@ func Server(port int) {
 	fmt.Println("listening on", addr)
 	defer conn.Close()
 
-	current_state := pft.CLOSED
+	current_state := CLOSED
 	var local_file_path string
 	for {
-		if current_state == pft.CLOSED {
+		if current_state == CLOSED {
 			buf := make([]byte, UDP_BUFFER_SIZE)
 			packet_size, sender_addr, err := conn.ReadFromUDP(buf)
 			CheckError(err)
 
-			if !pft.VerifyPacket(buf, packet_size) {
+			if !VerifyPacket(buf, packet_size) {
 				log.Println("Verification (REQ) failed")
 				continue
 			}
-			_, rid := pft.DecodeReq(buf, packet_size)
+			_, rid := DecodeReq(buf, packet_size)
 			log.Println("Received REQ:", rid)
 
 			// file or file-list // TODO: handle file-list
@@ -46,33 +45,33 @@ func Server(port int) {
 			stat, err := f.Stat()
 			if err != nil {
 				log.Println("Error: " + err.Error())
-				nack := pft.EncodeNack()
+				nack := EncodeNack()
 				conn.WriteToUDP(nack, sender_addr)
 				log.Println("Sent NACK:", nack)
 				continue
 			}
 
-			hash := pft.GetFileHash(local_file_path)
-			req_ack := pft.EncodeReqAck(uint64(stat.Size()), hash)
+			hash := GetFileHash(local_file_path)
+			req_ack := EncodeReqAck(uint64(stat.Size()), hash)
 
 			conn.WriteToUDP(req_ack, sender_addr)
 			log.Println("Sent REQ-ACK:", req_ack)
-			current_state = pft.OPEN
-		} else if current_state == pft.OPEN {
+			current_state = OPEN
+		} else if current_state == OPEN {
 			buf := make([]byte, UDP_BUFFER_SIZE)
 			packet_size, sender_addr, err := conn.ReadFromUDP(buf)
 			CheckError(err)
 
-			if !pft.VerifyPacket(buf, packet_size) {
+			if !VerifyPacket(buf, packet_size) {
 				log.Println("Verification (GET) failed")
 				continue
 			}
-			err, index := pft.DecodeGet(buf, packet_size)
+			err, index := DecodeGet(buf, packet_size)
 			CheckError(err)
 
 			log.Println("Received GET:", index)
-			data_block := pft.GetFileDataBlock(local_file_path, index)
-			data := pft.EncodeData(index, data_block)
+			data_block := GetFileDataBlock(local_file_path, index)
+			data := EncodeData(index, data_block)
 			conn.WriteToUDP(data, sender_addr)
 			log.Println("Sent DATA: ", data)
 		}

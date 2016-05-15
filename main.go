@@ -3,17 +3,8 @@ package main
 import (
 	"fmt"
 	"flag"
-	"os"
+	"github.com/rbruenig/protocoldesign/pft"
 )
-
-const UDP_BUFFER_SIZE = 512
-
-func CheckError(err error) {
-	if err != nil {
-		fmt.Println("Error: ", err)
-		os.Exit(0)
-	}
-}
 
 func main() {
 	portArg := flag.Int("t", 6222, "port to contact/listen on")
@@ -36,12 +27,12 @@ func main() {
 	fmt.Println("server:", flag.Args())
 
 	if *serverModeArg {
-		Server(*portArg)
+		pft.Server(*portArg)
 	} else {
 		if len(flag.Args()) != 1 {
 			fmt.Println("need to supply exactly one target server in client mode")
 			return
 		}
-		Client(*portArg, flag.Args()[0], resource)
+		pft.Client(*portArg, flag.Args()[0], resource)
 	}
 }
