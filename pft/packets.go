@@ -1,7 +1,6 @@
 package pft
 
 import (
-	//"errors"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -47,7 +46,6 @@ func DecodeReq(packet []byte) (error, string) {
 	if len(packet) <= 17 { // 17 is length of hash + type
 		return errors.New("packet too short"), ""
 	}
-
 	return nil, string(packet[17:])
 }
 
@@ -59,7 +57,6 @@ func DecodeData(packet []byte) (error, uint32, []byte) {
 	if len(packet) <= 21 { // 21 is length of hash + type + data_block
 		return errors.New("packet too short"), 0, nil
 	}
-
 	return nil, binary.BigEndian.Uint32(packet[17:21]), packet[21:]
 }
 
@@ -84,7 +81,6 @@ func DecodePush(packet []byte) (error, string) {
 	if len(packet) <= 17 {
 		return errors.New("packet too short"), ""
 	}
-
 	return nil, string(packet[17:])
 }
 
@@ -97,12 +93,7 @@ func DecodeGet(packet []byte) (error, uint32) {
 	if len(packet) != 21 {
 		return errors.New("packet too short"), 0
 	}
-
 	return nil, binary.BigEndian.Uint32(packet[17:21])
-}
-
-func EncodeGet(block_index uint32) []byte {
-	return nil
 }
 
 func EncodeReqAck(resource_size uint64, resource_hash []byte) []byte {
@@ -115,6 +106,5 @@ func DecodeReqAck(packet []byte) (error, uint64, []byte) {
 	}
 
 	resource_size := binary.BigEndian.Uint64(packet[17:25])
-
 	return nil, resource_size, packet[25:57]
 }
