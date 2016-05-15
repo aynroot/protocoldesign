@@ -39,7 +39,7 @@ func ToBigEndian64(num uint64) []byte {
 }
 
 func EncodeReq(rid string) []byte {
-	return MakePacket(1, []byte(rid))
+	return MakePacket(REQ, []byte(rid))
 }
 
 func DecodeReq(packet []byte, size int) (error, string) {
@@ -50,7 +50,7 @@ func DecodeReq(packet []byte, size int) (error, string) {
 }
 
 func EncodeData(block_index uint32, data_block []byte) []byte {
-	return MakePacket(7, append(ToBigEndian32(block_index), data_block...))
+	return MakePacket(DATA, append(ToBigEndian32(block_index), data_block...))
 }
 
 func DecodeData(packet []byte, size int) (error, uint32, []byte) {
@@ -61,20 +61,20 @@ func DecodeData(packet []byte, size int) (error, uint32, []byte) {
 }
 
 func EncodeNack() []byte {
-	return MakePacket(3, nil)
+	return MakePacket(NACK, nil)
 }
 
 func EncodePushAck() []byte {
-	return MakePacket(5, nil)
+	return MakePacket(PUSH_ACK, nil)
 
 }
 
 func EncodeRst() []byte {
-	return MakePacket(8, nil)
+	return MakePacket(RST, nil)
 }
 
 func EncodePush(rid string) []byte {
-	return MakePacket(4, []byte(rid))
+	return MakePacket(PUSH, []byte(rid))
 }
 
 func DecodePush(packet []byte, size int) (error, string) {
@@ -85,7 +85,7 @@ func DecodePush(packet []byte, size int) (error, string) {
 }
 
 func EncodeGet(blockIndex uint32) []byte {
-	return MakePacket(6, ToBigEndian32(blockIndex))
+	return MakePacket(GET, ToBigEndian32(blockIndex))
 
 }
 
@@ -97,7 +97,7 @@ func DecodeGet(packet []byte, size int) (error, uint32) {
 }
 
 func EncodeReqAck(resource_size uint64, resource_hash []byte) []byte {
-	return MakePacket(2, append(ToBigEndian64(resource_size), resource_hash...))
+	return MakePacket(REQ_ACK, append(ToBigEndian64(resource_size), resource_hash...))
 }
 
 func DecodeReqAck(packet []byte, size int) (error, uint64, []byte) {
