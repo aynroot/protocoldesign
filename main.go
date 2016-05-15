@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"net"
-	"os"
-	//"flag"
-	"strconv"
-	"time"
-	pft "./pft/"
+    "fmt"
+    "net"
+    "os"
+    "flag"
+    "strconv"
+    "time"
+
+    "./pft"
+    "log"
 )
 
 func main() {
@@ -133,16 +135,40 @@ func Client(port int, server string, resource string) {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     CheckError(err)
 
-    conn, err := net.DialUDP("udp", local_addr, server_addr)
+    conn, err := net.ListenUDP("udp", local_addr)
     CheckError(err)
     defer conn.Close()
 
+    storage_dir := "./files"
+    exists, info_file_path := pft.CheckIfPartiallyDownloaded(server, port, resource)
+    download := new(pft.Download)
+    if exists {
+        download = pft.LoadPartialDownload(info_file_path)
+    } else {
+        download = pft.InitDownload(server, port, resource, storage_dir)
+    }
+    fmt.Println(download)
+
+    testDownload(*download)
+
     i := 1
     for {
-        conn.Write([]byte(strconv.Itoa(i)))
+        conn.WriteToUDP([]byte(strconv.Itoa(i)), server_addr)
         i += 1
         time.Sleep(time.Second)
     }
 
 }
 
+func testDownload(download pft.Download) {
+    // make sure to set PAYLOAD_SIZE = 5 in download.go and init download size as something small
+    var i uint32;
+    for i = 1; i < 10; i++ {
+        download.HandleDataPacket(i, []byte{115, 111, 109, 101, 10}) // write "some\n"
+        if (download.IsFinished()) {
+            download.FinishDownload()
+            log.Println("finished")
+            break
+        }
+    }
+}
