@@ -74,7 +74,7 @@ func (this *Download) GobDecode(data []byte) error {
 
 // returns true if the payload was written to disk
 func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
-	if index == this.received_index+1 {
+	if index == this.received_index + 1 {
 		file, err := os.OpenFile(this.partial_file_path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		check(err)
 
