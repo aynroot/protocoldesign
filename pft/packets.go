@@ -65,7 +65,7 @@ func DecodeData(packet []byte, size int) (error, uint32, []byte) {
 }
 
 func EncodeNack() []byte {
-	return MakePacket(NACK, nil)
+	return MakePacket(REQ_NACK, nil)
 }
 
 func EncodePushAck() []byte {

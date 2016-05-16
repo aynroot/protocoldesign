@@ -49,7 +49,7 @@ func (this *client) checkNetError(err error) error {
 func (this *client) sendReq(server string, port int) {
 	exists, info_file_path := CheckIfPartiallyDownloaded(server, port, this.resource)
 	if exists {
-		this.download = LoadPartialDownload(info_file_path)
+		this.download = LoadPartFile(info_file_path)
 	} else {
 		this.download = InitDownload(server, port, this.resource, this.storage_dir)
 	}
@@ -73,7 +73,7 @@ func (this *client) handleReqResponse(packet []byte, packet_size int) error {
 
 		this.download.HandleReqPacket(uint64(size), hash)
 		this.state = OPEN
-	} else if packet_type == NACK {
+	} else if packet_type == REQ_NACK {
 		this.state = CLOSED
 	} else {
 		CheckError(errors.New("undeexpected packet type"))
@@ -150,7 +150,6 @@ func Client(port int, server string, resource string) {
 					os.Exit(0)
 				}
 			}
-
 			client.handleReqResponse(buf, packet_size)
 		} else if client.state == OPEN {
 			err = client.receiveData()

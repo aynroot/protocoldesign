@@ -9,6 +9,8 @@ import (
 	"math"
 )
 
+// TODO: This is horribly slow, don't open and close the file on every call. Cache the files and close them after a timeout
+
 // file path is absolute
 func GetFileDataBlock(file_path string, index uint32) []byte {
 	f, err := os.Open(file_path)
@@ -49,7 +51,9 @@ func getFileList(storage_dir string) []byte {
 // dir_path contains the path to the directory of which files are served, those are to be listed in the file-list
 func GetFileListDataBlock(storage_dir string, index uint32) []byte {
 	file_list := getFileList(storage_dir)
-	data_block := file_list[int(index - 1) * DATA_BLOCK_SIZE : int(math.Min(float64(index) * DATA_BLOCK_SIZE, float64(len(file_list))))]
+	data_block := file_list[
+        int(index - 1) * DATA_BLOCK_SIZE :
+        int(math.Min(float64(index) * DATA_BLOCK_SIZE, float64(len(file_list))))] // float ?!
 	return data_block
 }
 
