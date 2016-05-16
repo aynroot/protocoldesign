@@ -155,7 +155,6 @@ func (this *Download) FinishDownload() {
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)
 func (this *Download) CreateNextGet() []byte {
-
 	this.requested_index += 1
 	get := EncodeGet(this.requested_index)
 	log.Println(this.requested_index)

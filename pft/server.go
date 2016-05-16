@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type server struct {
@@ -118,8 +117,6 @@ func Server(port int) {
 	CheckError(err)
 	fmt.Println("listening on", addr)
 	defer conn.Close()
-
-	conn.SetDeadline(time.Now().Add(time.Second * 10))
 
 	server := *initServer(conn)
 	for {

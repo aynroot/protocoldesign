@@ -136,10 +136,10 @@ func Client(port int, server string, resource string) {
 	CheckError(err)
 	defer conn.Close()
 
-	conn.SetDeadline(time.Now().Add(time.Second * 10))
-
 	client := *initClient(conn, server_addr, resource)
 	for {
+		conn.SetDeadline(time.Now().Add(time.Second * 10))
+
 		if client.state == CLOSED {
 			client.sendReq(server, port)
 		}
