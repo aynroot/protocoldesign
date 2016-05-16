@@ -75,6 +75,8 @@ func (this *client) handleReqResponse(packet []byte, packet_size int) error {
 		this.state = OPEN
 	} else if packet_type == NACK {
 		this.state = CLOSED
+		fmt.Println("file not available")
+		os.Exit(2)
 	} else {
 		CheckError(errors.New("undeexpected packet type"))
 	}

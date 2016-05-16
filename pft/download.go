@@ -164,7 +164,7 @@ func (this *Download) CreateNextGet() []byte {
 
 // checks if partial download already exists
 func CheckIfPartiallyDownloaded(server string, port int, rid string) (bool, string) {
-	info_file_path := fmt.Sprintf("./.pft/%s:%d/%s.info", server, port, strings.Replace(rid, "/", ":", -1))
+	info_file_path := fmt.Sprintf("./.pft/%s@%d/%s.info", server, port, strings.Replace(rid, "/", "-", -1))
 	_, err := os.Stat(info_file_path)
 	exists := err == nil
 	return exists, info_file_path
@@ -172,11 +172,11 @@ func CheckIfPartiallyDownloaded(server string, port int, rid string) (bool, stri
 
 // initiates the download: creates the partial download file, initializes variables
 func InitDownload(server string, port int, rid string, storage_dir string) *Download {
-	server_dir := fmt.Sprintf("./.pft/%s:%d", server, port)
+	server_dir := fmt.Sprintf("./.pft/%s@%d", server, port)
 	err := os.MkdirAll(server_dir, 0777)
 	CheckError(err)
 
-	flat_rid := strings.Replace(rid, "/", ":", -1)
+	flat_rid := strings.Replace(rid, "/", "-", -1)
 	partial_file_path := fmt.Sprintf("%s/%s", server_dir, flat_rid)
 
 	destination_file_path, err := getDestinationFilePath(storage_dir, rid)

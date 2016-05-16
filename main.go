@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"flag"
-	"github.com/rbruenig/protocoldesign/pft"
+	"protocoldesign/pft"
 )
 
 func main() {
