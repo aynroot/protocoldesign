@@ -117,7 +117,7 @@ func (this Download) CreateNextGet() []byte {
     return get
 }
 
-// initiates the download: creates the partial download file, initializes variables
+// creates a download object: either continues a partial download or creates a new one
 func InitDownload(server string, port int, rid string, size uint64, hash []byte) Download {
     download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), filepath.Base(rid))
     part_file_path := download_file_path + ".part"
