@@ -54,8 +54,9 @@ func (this Download) CreatePartFile(path string) {
     encoder.Encode(this.hash)
 }
 
-func (this Download) RemovePartFile() {
+func (this Download) Close() {
     os.Remove(this.local_file.Name() + ".parts")
+	this.local_file.Close()
 }
 
 // loads the internal variables from a partial download file
@@ -115,6 +116,10 @@ func (this Download) CreateNextGet() []byte {
     get := EncodeGet(this.requested_index)
     log.Println("requesting", this.requested_index)
     return get
+}
+
+func (this Download) ResetGet() {
+    this.requested_index = this.received_index
 }
 
 // creates a download object: either continues a partial download or creates a new one

@@ -3,40 +3,120 @@ package pft
 import (
     "net"
     "fmt"
+    "time"
 )
 
+type InboundPacket struct {
+    sender *net.UDPAddr
+    data []byte
+    size int
+}
+
+type RemoteClient struct {
+    download_deadline    time.Time // if this deadline is passed, resend last packet
+    download_state int
+    download_rid string // for when state == HALF_OPEN: REQ or it's answer may get lost, so we need this for timeouts
+    download Download   // this is for ACK'ed downloads, do not put download_state and download_rid into Download struct
+
+    upload_state int
+    upload_rid string
+}
 
 type Peer struct {
-    download_state int
-    upload_state   int
-    file_dir       string
-    remote_filter  *net.UDPAddr  // only accept packets from this address (client mode)
+    remote_filter  *net.UDPAddr  // if remote_filter != nil: only accept packets from this address (client mode)
     conn           *net.UDPConn
-    download_queue chan Download
+    read_chan      chan InboundPacket
+    remotes        map[*net.UDPAddr]RemoteClient
 }
 
 func MakePeer(localAddr *net.UDPAddr, remoteAddr *net.UDPAddr) Peer {
     conn, _ := net.ListenUDP("udp", localAddr)
 
     return Peer {
-        download_state: CLOSED,
-        upload_state: CLOSED,
-        file_dir: ".",
         remote_filter: remoteAddr,
         conn: conn,
-        download_queue: make(chan Download, 10)}
+        read_chan: make(chan InboundPacket),
+    }
 }
 
 
-func (this Peer) HandleReq(sender *net.UDPAddr, req []byte, size int) {
-    err, rid := DecodeReq(req, size)
-    if err != nil {
-        fmt.Println("Error decoding req:", err)
+func (this Peer) HandleReq(sender *net.UDPAddr, rid string) {
+    // todo, handle req and put state into correct RemoteClient, then answer req
+
+    this.conn.WriteToUDP(sender, EncodeReqNack())
+}
+
+
+func (this Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, packet_size int) {
+    if this.remote_filter != nil && this.remote_filter != sender_addr {
         return
     }
 
+    if !VerifyPacket(packet_buffer, packet_size) {
+        return
+    }
+
+    sender_client := &this.remotes[sender_addr]
+
+    packet_type := packet_buffer[16]
+    switch packet_type {
+    case REQ:
+        fmt.Println("received REQ")
+        err, rid := DecodeReq(packet_buffer, packet_size)
+        if err == nil {
+            this.HandleReq(sender_addr, rid)
+        }
+    case REQ_ACK:
+        fmt.Println("received REQ_ACK")
+        err, size, hash := DecodeReqAck(packet_buffer, packet_size)
+
+        if err == nil && sender_client.download_state == HALF_OPEN {
+            sender_client.download = InitDownload(sender_addr.String(), sender_addr.Port,
+                                                  sender_client.download_rid, size, hash)
+            this.conn.WriteToUDP(sender_addr, this.remotes[sender_addr].download.CreateNextGet())
+        }
+    case REQ_NACK:
+        fmt.Println("received REQ_NACK")
+        // todo
+    case PUSH:
+        fmt.Println("received PUSH")
+        // todo
+    case PUSH_ACK:
+        fmt.Println("received PUSH_ACK")
+        // todo
+    case GET:
+        fmt.Println("received GET")
+        // todo
+    case DATA:
+        fmt.Println("received DATA")
+        // todo
+    case RST:
+        fmt.Println("received RST")
+        // todo
+    default:
+        fmt.Println("dropping packet with invalid type", packet_type)
+    }
+}
 
 
+func (this Peer) CheckTimeouts() {
+    now := time.Now()
+
+    for address, _ := range this.remotes {
+        client := &this.remotes[address] // get by reference so we can update it, range would only get it by value
+
+        if client.download_deadline < now && client.download_state != CLOSED {
+            if client.download_state == HALF_OPEN {
+                this.conn.WriteToUDP(address, EncodeReq(client.download_rid))
+            } else {
+                // state == OPEN
+                client.download.ResetGet()
+                this.conn.WriteToUDP(address, EncodeGet(client.download.CreateNextGet()))
+            }
+
+            client.download_deadline = time.Now() + time.Second * 4
+        }
+    }
 }
 
 
@@ -44,49 +124,41 @@ func (this Peer) ReadLoop() {
     buf := make([]byte, UDP_BUFFER_SIZE)
 
     for {
-        packet_size, sender_addr, _ := server.conn.ReadFromUDP(buf)
-        if this.remote_filter != nil && this.remote_filter != sender_addr {
-            continue
-        }
-
-        if !VerifyPacket(buf, packet_size) {
-            continue
-        }
-
-        packet_type := buf[16]
-        switch packet_type {
-        case REQ:
-        case REQ_ACK:
-        case REQ_NACK:
-        case PUSH:
-        case PUSH_ACK:
-        case GET:
-        case DATA:
-        case RST:
-        default:
-            fmt.Println("dropping packet with invalid type", packet_type)
-            continue
+        packet_size, sender_addr, err := server.conn.ReadFromUDP(buf)
+        if err == nil {
+            this.read_chan <- InboundPacket{sender_addr, buf, packet_size}
         }
     }
 }
 
 
-func (this Peer) Download(rid string, remote *net.UDPAddr) {
-}
-
-func (this Peer) WriteLoop() {
-    for {
-        switch this.download_state {
-        case CLOSED:
-
-        }
-    }
-}
 
 func (this Peer) Run() {
-    go this.WriteLoop()
     go this.ReadLoop()
+
+    check_timeouts := time.NewTicker(time.Second * 1)
+    var packet InboundPacket
+
+    // this is flexible: we can add a timer for congestion control
+    // do lock and wait for now: send next get when data packet arrived
+
+    for {
+        select {
+        case <- check_timeouts:
+            this.CheckTimeouts()
+        case packet <- this.read_chan:
+            this.HandlePacket(packet.sender, packet.data, packet.size)
+        }
+    }
+
 }
 
 
+func (this Peer) Download(rid string, remote_addr *net.UDPAddr) {
+    remote := &this.remotes[remote_addr]
 
+    remote.download_rid = rid
+    remote.download_state = HALF_OPEN
+    remote.download_deadline = time.Now() + time.Second * 4
+    this.conn.WriteToUDP(remote, EncodeReq(rid))
+}

@@ -59,7 +59,7 @@ func (this *server) handleReq(packet []byte, packet_size int, sender_addr *net.U
 		stat, err := f.Stat()
 		if err != nil {
 			log.Println("Error: " + err.Error())
-			nack := EncodeNack()
+			nack := EncodeReqNack()
 			this.conn.WriteToUDP(nack, sender_addr)
 			log.Println("Sent NACK:", nack)
 			return nil

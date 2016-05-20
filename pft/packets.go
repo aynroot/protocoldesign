@@ -64,7 +64,7 @@ func DecodeData(packet []byte, size int) (error, uint32, []byte) {
 	return nil, binary.BigEndian.Uint32(packet[17:21]), packet[21:size]
 }
 
-func EncodeNack() []byte {
+func EncodeReqNack() []byte {
 	return MakePacket(REQ_NACK, nil)
 }
 
