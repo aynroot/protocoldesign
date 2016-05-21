@@ -3,6 +3,8 @@ package pft
 import (
 	"fmt"
 	"os"
+	"strings"
+	"errors"
 )
 
 const (
@@ -35,10 +37,21 @@ func CheckError(err error) {
 func GetFileDir() string {
     wd, err := os.Getwd()
     CheckError(err)
-    file_dir := fmt.Sprint("%s/%s", wd, "pft-files")
-    err = os.MkdirAll(file_dir, 644)
+    file_dir := fmt.Sprintf("%s/%s", wd, "pft-files")
+    err = os.MkdirAll(file_dir, 0755)
     CheckError(err)
     return file_dir
+}
+
+func GetFileFromRID(rid string) string {
+	if strings.HasPrefix(rid, "file:") {
+		return rid[5:len(rid)]
+	} else if rid == "file-list" {
+		return rid
+	} else {
+		CheckError(errors.New("invalid resource type"))
+	}
+	return ""
 }
 
 

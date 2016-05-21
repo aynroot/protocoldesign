@@ -6,7 +6,6 @@ import (
     "os"
     "encoding/gob"
     "errors"
-    "path/filepath"
     "reflect"
 )
 
@@ -27,7 +26,8 @@ type Download struct {
 
 
 // returns true if the payload was written to disk
-func (this Download) HandleDataPacket(index uint32, payload []byte) bool {
+func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
+    log.Println("received", index)
     if index != this.received_index + 1 {
         this.requested_index = this.received_index
         return false
@@ -42,8 +42,8 @@ func (this Download) HandleDataPacket(index uint32, payload []byte) bool {
 }
 
 // saves the internal variables to a partial download file
-func (this Download) CreatePartFile(path string) {
-    file, err := os.OpenFile(path, os.O_TRUNC | os.O_WRONLY | os.O_CREATE, 644)
+func (this *Download) CreatePartFile(path string) {
+    file, err := os.OpenFile(path, os.O_TRUNC | os.O_WRONLY | os.O_CREATE, 0644)
     CheckError(err)
     defer file.Close()
 
@@ -55,40 +55,42 @@ func (this Download) CreatePartFile(path string) {
     encoder.Encode(this.hash)
 }
 
-func (this Download) Close() {
+func (this *Download) Close() {
     os.Remove(this.local_file.Name() + ".part")
     this.local_file.Close()
 }
 
 // loads the internal variables from a partial download file
-func LoadPartFile(download_file_path string, size uint64, hash []byte, d *Download) error {
+func loadPartFile(download_file_path string, size uint64, hash []byte, d *Download) error {
     part_file_path := download_file_path + ".part"
-    part_file, err := os.OpenFile(part_file_path, os.O_RDONLY, 644)
+    part_file, err := os.OpenFile(part_file_path, os.O_RDONLY, 0644)
     if err != nil {
         return err
     }
     defer part_file.Close()
 
-    download_file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_APPEND, 644)
+    download_file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_APPEND, 0644)
     if err != nil {
         return err
     }
+
     download_info, err := download_file.Stat()
     if err != nil {
         download_file.Close()
         return err
     }
+
     if download_info.Size() % DATA_BLOCK_SIZE != 0 {
         download_file.Close()
         return errors.New("partial download file size is not divisile by data block size")
     }
 
     decoder := gob.NewDecoder(part_file)
-    decoder.Decode(d.server)
-    decoder.Decode(d.port)
-    decoder.Decode(d.rid)
-    decoder.Decode(d.size)
-    err = decoder.Decode(d.hash)
+    decoder.Decode(&d.server)
+    decoder.Decode(&d.port)
+    decoder.Decode(&d.rid)
+    decoder.Decode(&d.size)
+    err = decoder.Decode(&d.hash)
     if err != nil {
         download_file.Close()
         return err
@@ -112,30 +114,35 @@ func (this *Download) IsFinished() bool {
 }
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)
-func (this Download) CreateNextGet() []byte {
+func (this *Download) CreateNextGet() []byte {
     this.requested_index += 1
     get := EncodeGet(this.requested_index)
     log.Println("requesting", this.requested_index)
     return get
 }
 
-func (this Download) ResetGet() {
+func (this *Download) ResetGet() {
+    log.Println("resetting")
     this.requested_index = this.received_index
 }
 
 // creates a download object: either continues a partial download or creates a new one
-func InitDownload(server string, port int, rid string, size uint64, hash []byte) Download {
-    download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), filepath.Base(rid))
+func InitDownload(server string, port int, rid string, size uint64, hash []byte) *Download {
+    download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), GetFileFromRID(rid))
     part_file_path := download_file_path + ".part"
 
-    var d Download
-    if err := LoadPartFile(download_file_path, size, hash, &d); err == nil {
+    d := new(Download)
+    if err := loadPartFile(download_file_path, size, hash, d); err == nil {
         // download loaded from .part file
         return d
+    } else {
+        log.Println(err.Error())
     }
 
-    file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 644)
+    file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
     CheckError(err)
+
+    log.Println("initiating download")
 
     d.server = server
     d.port = port
