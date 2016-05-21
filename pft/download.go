@@ -7,6 +7,7 @@ import (
     "encoding/gob"
     "errors"
     "path/filepath"
+    "reflect"
 )
 
 // this packet deals with resource downloads
@@ -55,8 +56,8 @@ func (this Download) CreatePartFile(path string) {
 }
 
 func (this Download) Close() {
-    os.Remove(this.local_file.Name() + ".parts")
-	this.local_file.Close()
+    os.Remove(this.local_file.Name() + ".part")
+    this.local_file.Close()
 }
 
 // loads the internal variables from a partial download file
@@ -93,14 +94,14 @@ func LoadPartFile(download_file_path string, size uint64, hash []byte, d *Downlo
         return err
     }
 
-    if d.size != size || d.hash != hash {
+    if d.size != size || !reflect.DeepEqual(d.hash, hash) {
         // file has changed
         download_file.Close()
         return errors.New("file has changed since part was downloaded")
     }
 
-    d.received_index = download_info.Size() / DATA_BLOCK_SIZE
-    d.requested_index = download_info.Size() / DATA_BLOCK_SIZE
+    d.received_index = uint32(download_info.Size() / DATA_BLOCK_SIZE)
+    d.requested_index = uint32(download_info.Size() / DATA_BLOCK_SIZE)
     d.local_file = download_file
 
     return nil
