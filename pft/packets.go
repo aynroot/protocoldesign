@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-
 	"golang.org/x/crypto/sha3"
 )
 
@@ -70,7 +69,6 @@ func EncodeReqNack() []byte {
 
 func EncodePushAck() []byte {
 	return MakePacket(PUSH_ACK, nil)
-
 }
 
 func EncodeRst() []byte {
@@ -90,7 +88,6 @@ func DecodePush(packet []byte, size int) (error, string) {
 
 func EncodeGet(blockIndex uint32) []byte {
 	return MakePacket(GET, ToBigEndian32(blockIndex))
-
 }
 
 func DecodeGet(packet []byte, size int) (error, uint32) {

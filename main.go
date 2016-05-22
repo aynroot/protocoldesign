@@ -11,10 +11,13 @@ import (
 func main() {
     portArg := flag.Int("t", 6222, "port to contact/listen on")
     serverModeArg := flag.Bool("s", false, "start in server mode")
-    fileArg := flag.String("f", "", "file to be downloaded")
+    downloadArg := flag.String("d", "", "file to be downloaded")
+    uploadArg := flag.String("u", "", "file to be uploaded")
+    resource := "file-list"
+    client_operation := 0
     flag.Parse()
 
-    if *serverModeArg && *fileArg != "" {
+    if *serverModeArg && *downloadArg != "" {
         fmt.Println("can only download file in client mode")
         return
     }
@@ -24,9 +27,12 @@ func main() {
         return
     }
 
-    resource := "file-list"
-    if *fileArg != "" {
-        resource = "file:" + *fileArg
+    if *downloadArg != "" {
+        resource = "file:" + *downloadArg
+        client_operation = 1
+    } else if *uploadArg != "" {
+        resource = "file:" + *uploadArg
+        client_operation = 2
     }
 
     fmt.Println("port:", *portArg)
@@ -38,7 +44,7 @@ func main() {
         local_addr, err := net.ResolveUDPAddr("udp", ":" + strconv.Itoa(*portArg))
         pft.CheckError(err)
 
-		peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
+        peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
         peer.Run()
 
     } else {
@@ -51,7 +57,17 @@ func main() {
         pft.CheckError(err)
 
         peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
-        peer.Download(resource, server_addr)
+
+        switch client_operation {
+
+        case 1:
+            peer.Download(resource, server_addr)
+            break
+        case 2:
+            peer.Upload(resource, server_addr)
+            break
+        }
+
         peer.Run()
     }
 

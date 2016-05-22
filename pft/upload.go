@@ -3,7 +3,6 @@ package pft
 import (
 	"os"
 	"io/ioutil"
-
 	"golang.org/x/crypto/sha3"
 	"strings"
 	"math"

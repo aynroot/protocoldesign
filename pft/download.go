@@ -128,7 +128,7 @@ func (this *Download) ResetGet() {
 
 // creates a download object: either continues a partial download or creates a new one
 func InitDownload(server string, port int, rid string, size uint64, hash []byte) *Download {
-    download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), GetFileFromRID(rid))
+    download_file_path := fmt.Sprintf("%s/%s2", GetFileDir(), GetFileFromRID(rid))
     part_file_path := download_file_path + ".part"
 
     d := new(Download)
