@@ -7,6 +7,7 @@ import (
 	"strings"
     "errors"
     "fmt"
+	"path/filepath"
 )
 
 // TODO: This is horribly slow, don't open and close the file on every call. Cache the files and close them after a timeout
@@ -47,14 +48,12 @@ func GetFileHash(file_path string) []byte {
 }
 
 func getFileList(storage_dir string) []byte {
-	files, _ := ioutil.ReadDir(storage_dir)
 
 	var file_names []string
-	for _, f := range files {
-        if !strings.HasSuffix(f.Name(), ".part") && f.Name() != "file-list" {
-            file_names = append(file_names, f.Name())
-        }
-	}
+    filepath.Walk(storage_dir, func(path string, f os.FileInfo, err error) error {
+        file_names = append(file_names, path)
+        return nil
+    })
 	files_string := strings.Join(file_names, "\n")
 	files_array := []byte(files_string)
 

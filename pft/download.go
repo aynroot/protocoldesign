@@ -144,7 +144,7 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
     CheckError(err)
 
-    log.Println("initiating new download")
+    log.Println("initiating new download of size", size)
 
     d.server = server
     d.port = port
