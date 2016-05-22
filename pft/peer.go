@@ -99,7 +99,6 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
 
 
 func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
-    remote.upload_rid = rid
     log.Println("got push for rid:" + rid)
     this.conn.WriteToUDP(EncodePushAck(), remote.addr)
     log.Println("sent PUSH-ACK")
