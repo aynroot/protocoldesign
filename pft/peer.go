@@ -162,18 +162,20 @@ func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
 }
 
 func (this *Peer) HandleData(remote *RemoteClient, index uint32, data []byte) {
-    if remote.download_state == OPEN {
-        remote.download_deadline = time.Now().Add(time.Second * 4)
-        remote.download.HandleDataPacket(index, data)
-        if remote.download.IsFinished() {
-            remote.download.Close()
-            if (remote.download_rid == "file-list") {
-                printFileList()
-            }
-            os.Exit(0)
-        } else {
-            this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
+    if remote.download_state != OPEN {
+        return
+    }
+
+    remote.download_deadline = time.Now().Add(time.Second * 4)
+    remote.download.SaveData(index, data)
+    if remote.download.IsFinished() {
+        remote.download.Close()
+        if (remote.download_rid == "file-list") {
+            printFileList()
         }
+        os.Exit(0)
+    } else {
+        this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
     }
 }
 

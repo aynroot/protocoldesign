@@ -26,7 +26,7 @@ type Download struct {
 
 
 // returns true if the payload was written to disk
-func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
+func (this *Download) SaveData(index uint32, payload []byte) bool {
     log.Println("received", index)
     if index != uint32(this.received_index + 1) {
         this.requested_index = this.received_index
