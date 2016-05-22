@@ -30,7 +30,7 @@ func getFileDataBlock(file_path string, index uint32) []byte {
     // TODO: check for 'index out of bounds' when doing f.Seek
     // TODO: keep file open
 
-	_, err = f.Seek(int64((index - 1) * DATA_BLOCK_SIZE), 0)
+	_, err = f.Seek(int64(index  * DATA_BLOCK_SIZE), 0)
 	CheckError(err)
 	data_block := make([]byte, DATA_BLOCK_SIZE)
 	n, err := f.Read(data_block)
