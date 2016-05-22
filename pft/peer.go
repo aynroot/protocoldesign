@@ -285,14 +285,14 @@ func (this *Peer) ReadLoop() {
 func (this *Peer) Run() {
     go this.ReadLoop()
 
-    check_timeouts := time.NewTicker(time.Second * 1).C
+    regular_ticker := time.NewTicker(time.Second * 1).C
 
     // this is flexible: we can add a timer for congestion control
     // do lock and wait for now: send next get when data packet arrived
 
     for {
         select {
-        case <-check_timeouts:
+        case <-regular_ticker:
             this.CheckTimeouts()
         case packet := <-this.read_chan:
             this.HandlePacket(packet.sender, packet.data, packet.size)

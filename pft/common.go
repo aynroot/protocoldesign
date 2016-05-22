@@ -26,7 +26,7 @@ const (
 )
 
 const DATA_BLOCK_SIZE = 491
-const UDP_BUFFER_SIZE = 512
+const UDP_BUFFER_SIZE = 1024
 
 func CheckError(err error) {
     if err != nil {

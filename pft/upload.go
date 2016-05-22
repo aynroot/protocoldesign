@@ -2,14 +2,53 @@ package pft
 
 import (
 	"os"
-	"io/ioutil"
 	"golang.org/x/crypto/sha3"
 	"strings"
     "errors"
 	"path/filepath"
+    "io"
 )
 
-// TODO: This is horribly slow, don't open and close the file on every call. Cache the files and close them after a timeout
+type UploadFile struct {
+    handle *os.File
+    hash []byte
+}
+
+var file_cache = make(map[string]UploadFile)
+
+func GetUploadFile(path string) (UploadFile, error) {
+    upload_file, ok := file_cache[path]
+    if ok {
+        // fast path: return from cache
+        return upload_file, nil
+    }
+
+    // open & lock file
+    file, err := os.Open(path)
+    if err != nil {
+        return UploadFile{}, err
+    }
+
+    // calculate hash
+    hasher := sha3.New256()
+    io.Copy(hasher, file)
+
+    // cache file
+    upload_file = UploadFile{file, hasher.Sum(nil)}
+    file_cache[path] = upload_file
+    return upload_file, nil
+}
+
+func CloseUploadFile(path string) {
+    upload_file, ok := file_cache[path]
+    if !ok {
+        return
+    }
+
+    upload_file.handle.Close()
+    delete(file_cache, path)
+}
+
 
 func GetDataBlock(rid string, index uint32) ([]byte, error) {
     if strings.HasPrefix(rid, "file:") {
@@ -21,29 +60,24 @@ func GetDataBlock(rid string, index uint32) ([]byte, error) {
 
 // file path is absolute
 func getFileDataBlock(file_path string, index uint32) []byte {
-	f, err := os.Open(file_path)
+    upload_file, err := GetUploadFile(file_path)
 	CheckError(err)
-	defer f.Close()
 
-    // TODO: move logic about size and hash from peer here (merge with next func)
-    // TODO: check for 'index out of bounds' when doing f.Seek
-    // TODO: keep file open
-
-	_, err = f.Seek(int64(index  * DATA_BLOCK_SIZE), 0)
+	_, err = upload_file.handle.Seek(int64(index  * DATA_BLOCK_SIZE), 0)
 	CheckError(err)
 	data_block := make([]byte, DATA_BLOCK_SIZE)
-	n, err := f.Read(data_block)
+	n, err := upload_file.handle.Read(data_block)
 	CheckError(err)
 
 	return data_block[:n]
 }
 
+
 func GetFileHash(file_path string) []byte {
-	file_data, err := ioutil.ReadFile(file_path)
+	upload_file, err := GetUploadFile(file_path)
 	CheckError(err)
 
-	hash := sha3.Sum256(file_data)
-	return hash[:]
+	return upload_file.hash
 }
 
 func getFileList(storage_dir string) []byte {
