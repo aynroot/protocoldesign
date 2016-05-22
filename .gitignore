@@ -25,3 +25,6 @@ _testmain.go
 
 #IDEs
 .idea
+.iml
+
+/pft-files/
