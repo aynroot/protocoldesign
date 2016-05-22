@@ -271,8 +271,9 @@ func (this *Peer) Run() {
 }
 
 func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
-    remote := new(RemoteClient)
-    this.remotes[remote_addr.String()] = remote
+    fmt.Println("downloading", rid)
+
+    remote := this.GetRemote(remote_addr)
 
     remote.download_rid = rid
     remote.download_state = HALF_OPEN
