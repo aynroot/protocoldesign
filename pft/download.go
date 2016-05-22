@@ -19,8 +19,8 @@ type Download struct {
     rid             string
     size            uint64
     hash            []byte
-    received_index  uint32
-    requested_index uint32
+    received_index  int64
+    requested_index int64
     local_file      *os.File
 }
 
@@ -28,7 +28,7 @@ type Download struct {
 // returns true if the payload was written to disk
 func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
     log.Println("received", index)
-    if index != this.received_index + 1 {
+    if index != uint32(this.received_index + 1) {
         this.requested_index = this.received_index
         return false
     }
@@ -37,7 +37,7 @@ func (this *Download) HandleDataPacket(index uint32, payload []byte) bool {
     CheckError(err)
     log.Println("wrote", n, "bytes to", this.local_file.Name())
 
-    this.received_index = index
+    this.received_index = int64(index)
     return true
 }
 
@@ -102,21 +102,22 @@ func loadPartFile(download_file_path string, size uint64, hash []byte, d *Downlo
         return errors.New("file has changed since part was downloaded")
     }
 
-    d.received_index = uint32(download_info.Size() / DATA_BLOCK_SIZE)
-    d.requested_index = uint32(download_info.Size() / DATA_BLOCK_SIZE)
+    // NOTE: indexes are 0 based, size / block_size is amount of blocks downloaded, subtract one to get index
+    d.received_index = (download_info.Size() / DATA_BLOCK_SIZE) - 1
+    d.requested_index = (download_info.Size() / DATA_BLOCK_SIZE) - 1
     d.local_file = download_file
 
     return nil
 }
 
 func (this *Download) IsFinished() bool {
-    return uint64(this.received_index * DATA_BLOCK_SIZE) >= this.size
+    return uint64(this.received_index + 1) * DATA_BLOCK_SIZE >= this.size
 }
 
 // creates get packet for requested_index + 1 (use encode function from packets.go)
 func (this *Download) CreateNextGet() []byte {
     this.requested_index += 1
-    get := EncodeGet(this.requested_index)
+    get := EncodeGet(uint32(this.requested_index))
     log.Println("requesting", this.requested_index)
     return get
 }
@@ -128,7 +129,7 @@ func (this *Download) ResetGet() {
 
 // creates a download object: either continues a partial download or creates a new one
 func InitDownload(server string, port int, rid string, size uint64, hash []byte) *Download {
-    download_file_path := fmt.Sprintf("%s/%s2", GetFileDir(), GetFileFromRID(rid))
+    download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), GetFileFromRID(rid))
     part_file_path := download_file_path + ".part"
 
     d := new(Download)
@@ -150,8 +151,8 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     d.rid = rid
     d.size = size
     d.hash = hash
-    d.received_index = 0
-    d.requested_index = 0
+    d.received_index = -1
+    d.requested_index = -1
     d.local_file = file
 
     d.CreatePartFile(part_file_path)

@@ -91,6 +91,7 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
         req_ack := EncodeReqAck(size, hash)
         this.conn.WriteToUDP(req_ack, remote.addr)
         remote.upload_state = OPEN
+        remote.upload_original_hash = hash
         log.Println("sent REQ-ACK")
     } else {
         this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
@@ -116,9 +117,31 @@ func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
 
 
 func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
-    hashCheck := GetFileHash(remote.upload_file_path)
+    if remote.upload_state != OPEN {
+        this.conn.WriteToUDP(EncodeRst(), remote.addr)
+        return
+    }
 
-    if remote.upload_state == OPEN {
+    if remote.upload_rid == "file-list" {
+        _, hash := GetFileListSizeAndHash(GetFileDir())
+        if !bytes.Equal(remote.upload_original_hash, hash) {
+            this.conn.WriteToUDP(EncodeRst(), remote.addr);
+            log.Println("sent RST")
+            return;
+        }
+
+        data_block, err := getFileListDataBlock(GetFileDir(), index)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        this.conn.WriteToUDP(EncodeData(index, data_block), remote.addr)
+
+    } else {
+        // file download
+        hashCheck := GetFileHash(remote.upload_file_path)
+
         // Checks if the file has been modified.
         if bytes.Equal(remote.upload_original_hash, hashCheck){
 
@@ -134,8 +157,8 @@ func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
             log.Println("sent RST")
             return
         }
-
     }
+
 }
 
 func (this *Peer) HandleData(remote *RemoteClient, index uint32, data []byte) {
@@ -182,6 +205,7 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         log.Println("File does not exist or is not currently available.")
         remote.download_state = CLOSED
         os.Exit(0)
+
     case PUSH:
         log.Println("received PUSH")
         err, rid := DecodePush(packet_buffer, packet_size)

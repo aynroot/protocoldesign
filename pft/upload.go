@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"golang.org/x/crypto/sha3"
 	"strings"
-	"math"
     "errors"
     "fmt"
 )
@@ -52,14 +51,13 @@ func getFileList(storage_dir string) []byte {
 
 	var file_names []string
 	for _, f := range files {
-        if !strings.HasSuffix(f.Name(), ".part") {
+        if !strings.HasSuffix(f.Name(), ".part") && f.Name() != "file-list" {
             file_names = append(file_names, f.Name())
         }
 	}
 	files_string := strings.Join(file_names, "\n")
 	files_array := []byte(files_string)
 
-	//TODO: what if file-list changed?
 	return files_array
 }
 
@@ -67,13 +65,17 @@ func getFileList(storage_dir string) []byte {
 func getFileListDataBlock(storage_dir string, index uint32) ([]byte, error) {
     file_list := getFileList(storage_dir)
 
-    if (int(index - 1) * DATA_BLOCK_SIZE >= len(file_list)) {
+    if index * DATA_BLOCK_SIZE >= uint32(len(file_list)) {
         return nil, errors.New("index out of bounds")
     }
 
-    data_block := file_list[
-        int(index - 1) * DATA_BLOCK_SIZE :
-        int(math.Min(float64(index) * DATA_BLOCK_SIZE, float64(len(file_list))))]
+    data_start := index * DATA_BLOCK_SIZE
+	data_end := data_start + DATA_BLOCK_SIZE
+    if data_end > uint32(len(file_list)) {
+        data_end = uint32(len(file_list))
+    }
+
+    data_block := file_list[data_start : data_end]
 	return data_block, nil
 }
 
