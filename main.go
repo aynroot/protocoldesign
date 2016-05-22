@@ -13,8 +13,6 @@ func main() {
     serverModeArg := flag.Bool("s", false, "start in server mode")
     downloadArg := flag.String("d", "", "file to be downloaded")
     uploadArg := flag.String("u", "", "file to be uploaded")
-    resource := "file-list"
-    client_operation := 0
     flag.Parse()
 
     if *serverModeArg && *downloadArg != "" {
@@ -25,14 +23,6 @@ func main() {
     if !*serverModeArg && len(flag.Args()) != 1 {
         fmt.Println("need to supply exactly one target server in client mode")
         return
-    }
-
-    if *downloadArg != "" {
-        resource = "file:" + *downloadArg
-        client_operation = 1
-    } else if *uploadArg != "" {
-        resource = "file:" + *uploadArg
-        client_operation = 2
     }
 
     fmt.Println("port:", *portArg)
@@ -58,14 +48,17 @@ func main() {
 
         peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
 
-        switch client_operation {
+        if *uploadArg != "" {
+            // upload mode
+            peer.Upload("file:" + *uploadArg, server_addr)
+        } else {
+            // download mode
 
-        case 1:
+            resource := "file-list" // download file list if no file specified
+            if *downloadArg != "" {
+                resource = "file:" + *downloadArg
+            }
             peer.Download(resource, server_addr)
-            break
-        case 2:
-            peer.Upload(resource, server_addr)
-            break
         }
 
         peer.Run()
