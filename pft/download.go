@@ -6,7 +6,8 @@ import (
     "os"
     "encoding/gob"
     "errors"
-    "reflect"
+    "path"
+    "bytes"
 )
 
 // this packet deals with resource downloads
@@ -96,7 +97,7 @@ func loadPartFile(download_file_path string, size uint64, hash []byte, d *Downlo
         return err
     }
 
-    if d.size != size || !reflect.DeepEqual(d.hash, hash) {
+    if d.size != size || !bytes.Equal(d.hash, hash) {
         // file has changed
         download_file.Close()
         return errors.New("file has changed since part was downloaded")
@@ -123,7 +124,6 @@ func (this *Download) CreateNextGet() []byte {
 }
 
 func (this *Download) ResetGet() {
-    log.Println("resetting")
     this.requested_index = this.received_index
 }
 
@@ -141,6 +141,10 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
         log.Println(err.Error())
     }
 
+    log.Println("download of file", download_file_path)
+    log.Println("creating dir", path.Dir(download_file_path))
+
+    os.MkdirAll(path.Dir(download_file_path), 0644)
     file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
     CheckError(err)
 

@@ -45,7 +45,7 @@ func GetFileDir() string {
 
 func GetFileFromRID(rid string) string {
 	if strings.HasPrefix(rid, "file:") {
-		return rid[5:len(rid)]
+		return rid[5:]
 	} else if rid == "file-list" {
 		return rid
 	} else {

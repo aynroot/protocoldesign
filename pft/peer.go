@@ -234,9 +234,10 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         }
     case RST:
         log.Println("received RST")
-        log.Println("The file requested has been modified, restarting download")
+        log.Println("connection was reset, restarting download")
 
         // Resending REQ to restart download.
+        remote.download_state = HALF_OPEN
         this.conn.WriteToUDP(EncodeReq(remote.download_rid), sender_addr)
         log.Println("sent REQ")
 
