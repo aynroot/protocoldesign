@@ -27,15 +27,13 @@ type Download struct {
 
 // returns true if the payload was written to disk
 func (this *Download) SaveData(index uint32, payload []byte) bool {
-    log.Println("received", index)
     if index != uint32(this.received_index + 1) {
         this.requested_index = this.received_index
         return false
     }
 
-    n, err := this.local_file.Write(payload)
+    _, err := this.local_file.Write(payload)
     CheckError(err)
-    log.Println("wrote", n, "bytes to", this.local_file.Name())
 
     this.received_index = int64(index)
     return true
@@ -118,7 +116,6 @@ func (this *Download) IsFinished() bool {
 func (this *Download) CreateNextGet() []byte {
     this.requested_index += 1
     get := EncodeGet(uint32(this.requested_index))
-    log.Println("requesting", this.requested_index)
     return get
 }
 
@@ -160,4 +157,8 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
 
     d.CreatePartFile(part_file_path)
     return d
+}
+
+func (this *Download) IndexPercent(index uint32) uint64 {
+    return uint64(index) * 100 * DATA_BLOCK_SIZE / this.size
 }

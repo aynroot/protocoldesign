@@ -110,11 +110,26 @@ func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
     this.Download(rid, remote.addr)
 }
 
+
+func (this *Peer) DownloadNextBlock(remote *RemoteClient) {
+    if remote.download.IsFinished() {
+        remote.download.Close()
+        if (remote.download_rid == "file-list") {
+            printFileList()
+        }
+        os.Exit(0)
+    } else {
+        this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
+    }
+}
+
+
 func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
     if remote.download_state == HALF_OPEN {
         remote.download = InitDownload(remote.addr.IP.String(), remote.addr.Port, remote.download_rid, size, hash)
-        this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
         remote.download_state = OPEN
+
+        this.DownloadNextBlock(remote)
     }
 }
 
@@ -169,17 +184,13 @@ func (this *Peer) HandleData(remote *RemoteClient, index uint32, data []byte) {
         return
     }
 
+    if remote.download.IndexPercent(index) < remote.download.IndexPercent(index + 1) {
+        fmt.Println(remote.download.IndexPercent(index + 1), "%")
+    }
+
     remote.download_deadline = time.Now().Add(time.Second * 4)
     remote.download.SaveData(index, data)
-    if remote.download.IsFinished() {
-        remote.download.Close()
-        if (remote.download_rid == "file-list") {
-            printFileList()
-        }
-        os.Exit(0)
-    } else {
-        this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
-    }
+    this.DownloadNextBlock(remote)
 }
 
 func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, packet_size int) {
@@ -223,13 +234,11 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         remote.download_state = OPEN
 
     case GET:
-        log.Println("received GET")
         err, index := DecodeGet(packet_buffer, packet_size)
         if err == nil {
             this.HandleGet(remote, index)
         }
     case DATA:
-        log.Println("received DATA")
         //time.Sleep(time.Second * 2)
         err, index, data := DecodeData(packet_buffer, packet_size)
         if err == nil {
