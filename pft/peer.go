@@ -67,7 +67,7 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
     remote.upload_state = CLOSED
 
     if strings.HasPrefix(rid, "file:") {
-        upload_file_path := fmt.Sprintf("%s/%s", GetFileDir(), rid[5:len(rid)])
+        upload_file_path := fmt.Sprintf("%s/%s", GetFileDir(), rid[5:])
 
         f, err := os.Open(upload_file_path)
         stat, err := f.Stat()
@@ -227,7 +227,7 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         }
     case DATA:
         log.Println("received DATA")
-        time.Sleep(time.Second * 2)
+        //time.Sleep(time.Second * 2)
         err, index, data := DecodeData(packet_buffer, packet_size)
         if err == nil {
             this.HandleData(remote, index, data)

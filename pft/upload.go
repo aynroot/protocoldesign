@@ -52,7 +52,7 @@ func getFileList(storage_dir string) []byte {
 	var file_names []string
     filepath.Walk(storage_dir, func(path string, f os.FileInfo, err error) error {
         if !f.IsDir() {
-            file_names = append(file_names, path)
+            file_names = append(file_names, path[len(storage_dir) + 1:])
         }
         return nil
     })
