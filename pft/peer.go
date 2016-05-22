@@ -101,16 +101,10 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
 func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
     remote.upload_rid = rid
     log.Println("got push for rid:" + rid)
-
-    remote.upload_state = CLOSED
-
     this.conn.WriteToUDP(EncodePushAck(), remote.addr)
-    remote.upload_state = OPEN
     log.Println("sent PUSH-ACK")
 
-    //TODO Don't know if the peer has to restart this way or if it should be done somewhere else.
     this.Download(rid, remote.addr)
-
 }
 
 func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
@@ -288,11 +282,6 @@ func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
 }
 
 func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
-    remote := this.GetRemote(remote_addr)
-
-    remote.download_rid = rid
-    remote.download_state = HALF_OPEN
-    remote.download_deadline = time.Now().Add(time.Second * 4)
     this.conn.WriteToUDP(EncodePush(rid), remote_addr)
     log.Println("sent PUSH")
 }
