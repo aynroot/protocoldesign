@@ -6,7 +6,6 @@ import (
 	"golang.org/x/crypto/sha3"
 	"strings"
     "errors"
-    "fmt"
 	"path/filepath"
 )
 
@@ -14,7 +13,7 @@ import (
 
 func GetDataBlock(rid string, index uint32) ([]byte, error) {
     if strings.HasPrefix(rid, "file:") {
-        return getFileDataBlock(fmt.Sprintf("%s/%s", GetFileDir(), rid[5:len(rid)]), index), nil
+        return getFileDataBlock(filepath.Join(GetFileDir(), rid[5:]), index), nil
     } else {
         return getFileListDataBlock(GetFileDir(), index)
     }
@@ -52,7 +51,8 @@ func getFileList(storage_dir string) []byte {
 	var file_names []string
     filepath.Walk(storage_dir, func(path string, f os.FileInfo, err error) error {
         if !f.IsDir() {
-            file_names = append(file_names, path[len(storage_dir) + 1:])
+            path = filepath.ToSlash(path[len(storage_dir) + 1:])
+            file_names = append(file_names, path)
         }
         return nil
     })

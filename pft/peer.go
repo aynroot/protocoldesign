@@ -9,6 +9,7 @@ import (
     "strings"
     "bufio"
     "bytes"
+    "path/filepath"
 )
 
 type InboundPacket struct {
@@ -63,11 +64,12 @@ func (this *Peer) GetRemote(remote_addr *net.UDPAddr) *RemoteClient {
 }
 
 func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
+    rid = filepath.FromSlash(rid)
     remote.upload_rid = rid
     remote.upload_state = CLOSED
 
     if strings.HasPrefix(rid, "file:") {
-        upload_file_path := fmt.Sprintf("%s/%s", GetFileDir(), rid[5:])
+        upload_file_path := filepath.Join(GetFileDir(), rid[5:])
 
         f, err := os.Open(upload_file_path)
         stat, err := f.Stat()
@@ -100,6 +102,7 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
 
 
 func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
+    rid = filepath.FromSlash(rid)
     log.Println("got push for rid:" + rid)
     this.conn.WriteToUDP(EncodePushAck(), remote.addr)
     log.Println("sent PUSH-ACK")
@@ -315,7 +318,7 @@ func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
 }
 
 func printFileList() {
-    path := fmt.Sprintf("%s/file-list", GetFileDir())
+    path := filepath.Join(GetFileDir(), "file-list")
     f, err := os.Open(path)
     if err != nil {
         fmt.Println(err.Error())

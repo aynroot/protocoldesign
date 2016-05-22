@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"errors"
+	"path/filepath"
 )
 
 const (
@@ -37,8 +38,8 @@ func CheckError(err error) {
 func GetFileDir() string {
     wd, err := os.Getwd()
     CheckError(err)
-    file_dir := fmt.Sprintf("%s/%s", wd, "pft-files")
-    err = os.MkdirAll(file_dir, 0755)
+    file_dir := filepath.Join(wd, "pft-files")
+    err = os.MkdirAll(file_dir, 0644)
     CheckError(err)
     return file_dir
 }

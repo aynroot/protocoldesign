@@ -1,13 +1,12 @@
 package pft
 
 import (
-    "fmt"
     "log"
     "os"
     "encoding/gob"
     "errors"
-    "path"
     "bytes"
+    "path/filepath"
 )
 
 // this packet deals with resource downloads
@@ -129,7 +128,7 @@ func (this *Download) ResetGet() {
 
 // creates a download object: either continues a partial download or creates a new one
 func InitDownload(server string, port int, rid string, size uint64, hash []byte) *Download {
-    download_file_path := fmt.Sprintf("%s/%s", GetFileDir(), GetFileFromRID(rid))
+    download_file_path := filepath.Join(GetFileDir(), GetFileFromRID(rid))
     part_file_path := download_file_path + ".part"
 
     d := new(Download)
@@ -142,9 +141,9 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     }
 
     log.Println("download of file", download_file_path)
-    log.Println("creating dir", path.Dir(download_file_path))
+    log.Println("creating dir", filepath.Dir(download_file_path))
 
-    os.MkdirAll(path.Dir(download_file_path), 0644)
+    os.MkdirAll(filepath.Dir(download_file_path), 0644)
     file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
     CheckError(err)
 
