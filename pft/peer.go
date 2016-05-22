@@ -18,6 +18,8 @@ type InboundPacket struct {
 }
 
 type RemoteClient struct {
+    addr    *net.UDPAddr
+
     download_deadline time.Time // if this deadline is passed, resend last packet
     download_state    int
     download_rid      string    // for when state == HALF_OPEN: REQ or it's answer may get lost, so we need this for timeouts
@@ -47,9 +49,20 @@ func MakePeer(localAddr *net.UDPAddr, remoteAddr *net.UDPAddr) Peer {
     }
 }
 
-func (this Peer) HandleReq(sender *net.UDPAddr, rid string) {
-    remote := new(RemoteClient)
-    this.remotes[sender.String()] = remote
+func (this *Peer) GetRemote(remote_addr *net.UDPAddr) *RemoteClient {
+    remote, ok := this.remotes[remote_addr.String()]
+    if !ok {
+        remote = new(RemoteClient)
+        remote.download_state = CLOSED
+        remote.upload_state = CLOSED
+        remote.addr = remote_addr
+        this.remotes[remote_addr.String()] = remote
+    }
+
+    return remote
+}
+
+func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
     remote.upload_rid = rid
     remote.upload_state = CLOSED
 
@@ -60,7 +73,7 @@ func (this Peer) HandleReq(sender *net.UDPAddr, rid string) {
         stat, err := f.Stat()
         if err != nil {
             log.Println("Error: " + err.Error())
-            this.conn.WriteToUDP(EncodeReqNack(), sender)
+            this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
             log.Println("sent REQ-NACK")
             return
         }
@@ -70,50 +83,46 @@ func (this Peer) HandleReq(sender *net.UDPAddr, rid string) {
         remote.upload_file_path = upload_file_path
 
         req_ack := EncodeReqAck(uint64(stat.Size()), hash)
-        this.conn.WriteToUDP(req_ack, sender)
+        this.conn.WriteToUDP(req_ack, remote.addr)
         remote.upload_state = OPEN
         log.Println("sent REQ-ACK")
     } else if rid == "file-list" {
         size, hash := GetFileListSizeAndHash(GetFileDir())
         req_ack := EncodeReqAck(size, hash)
-        this.conn.WriteToUDP(req_ack, sender)
+        this.conn.WriteToUDP(req_ack, remote.addr)
         remote.upload_state = OPEN
         log.Println("sent REQ-ACK")
     } else {
-        this.conn.WriteToUDP(EncodeReqNack(), sender)
+        this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
     }
 }
 
 
-func (this Peer) HandlePush(sender *net.UDPAddr, rid string) {
-    remote := new(RemoteClient)
-    this.remotes[sender.String()] = remote
+func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
     remote.upload_rid = rid
-    log.Println("RID:" + rid)
+    log.Println("got push for rid:" + rid)
 
     remote.upload_state = CLOSED
 
-    this.conn.WriteToUDP(EncodePushAck(), sender)
+    this.conn.WriteToUDP(EncodePushAck(), remote.addr)
     remote.upload_state = OPEN
     log.Println("sent PUSH-ACK")
 
     //TODO Don't know if the peer has to restart this way or if it should be done somewhere else.
-    this.Download(rid, sender)
+    this.Download(rid, remote.addr)
 
 }
 
-func (this Peer) HandleReqAck(sender *net.UDPAddr, size uint64, hash []byte) {
-    remote := this.remotes[sender.String()]
+func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
     if remote.download_state == HALF_OPEN {
-        remote.download = InitDownload(sender.IP.String(), sender.Port, remote.download_rid, size, hash)
-        this.conn.WriteToUDP(remote.download.CreateNextGet(), sender)
+        remote.download = InitDownload(remote.addr.IP.String(), remote.addr.Port, remote.download_rid, size, hash)
+        this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
         remote.download_state = OPEN
     }
 }
 
 
-func (this Peer) HandleGet(sender *net.UDPAddr, index uint32) {
-    remote := this.remotes[sender.String()]
+func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
     hashCheck := GetFileHash(remote.upload_file_path)
 
     if remote.upload_state == OPEN {
@@ -122,13 +131,13 @@ func (this Peer) HandleGet(sender *net.UDPAddr, index uint32) {
 
             data_block, err := GetDataBlock(remote.upload_rid, index)
             if err == nil {
-                this.conn.WriteToUDP(EncodeData(index, data_block), sender)
+                this.conn.WriteToUDP(EncodeData(index, data_block), remote.addr)
             } else {
                 fmt.Println(err.Error())
             }
 
         } else {
-            this.conn.WriteToUDP(EncodeRst(), sender)
+            this.conn.WriteToUDP(EncodeRst(), remote.addr)
             log.Println("sent RST")
             return
         }
@@ -136,8 +145,7 @@ func (this Peer) HandleGet(sender *net.UDPAddr, index uint32) {
     }
 }
 
-func (this Peer) HandleData(sender *net.UDPAddr, index uint32, data []byte) {
-    remote := this.remotes[sender.String()]
+func (this *Peer) HandleData(remote *RemoteClient, index uint32, data []byte) {
     if remote.download_state == OPEN {
         remote.download.HandleDataPacket(index, data)
         if remote.download.IsFinished() {
@@ -147,12 +155,12 @@ func (this Peer) HandleData(sender *net.UDPAddr, index uint32, data []byte) {
             }
             os.Exit(0)
         } else {
-            this.conn.WriteToUDP(remote.download.CreateNextGet(), sender)
+            this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
         }
     }
 }
 
-func (this Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, packet_size int) {
+func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, packet_size int) {
     if this.remote_filter != nil && this.remote_filter.String() != sender_addr.String() {
         return
     }
@@ -162,53 +170,51 @@ func (this Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, pa
     }
 
     packet_type := GetPacketType(packet_buffer)
+    remote := this.GetRemote(sender_addr)
     switch packet_type {
     case REQ:
         log.Println("received REQ")
         err, rid := DecodeReq(packet_buffer, packet_size)
         if err == nil {
-            this.HandleReq(sender_addr, rid)
+            this.HandleReq(remote, rid)
         }
     case REQ_ACK:
         log.Println("received REQ_ACK")
         err, size, hash := DecodeReqAck(packet_buffer, packet_size)
         if err == nil {
-            this.HandleReqAck(sender_addr, size, hash)
+            this.HandleReqAck(remote, size, hash)
         }
     case REQ_NACK:
         log.Println("received REQ_NACK")
         log.Println("File does not exist or is not currently available.")
-        remote := this.remotes[sender_addr.String()]
         remote.download_state = CLOSED
         os.Exit(0)
     case PUSH:
         log.Println("received PUSH")
         err, rid := DecodePush(packet_buffer, packet_size)
         if err == nil {
-            this.HandlePush(sender_addr, rid)
+            this.HandlePush(remote, rid)
         }
     case PUSH_ACK:
         log.Println("received PUSH_ACK")
-        remote := this.remotes[sender_addr.String()]
         remote.download_state = OPEN
 
     case GET:
         log.Println("received GET")
         err, index := DecodeGet(packet_buffer, packet_size)
         if err == nil {
-            this.HandleGet(sender_addr, index)
+            this.HandleGet(remote, index)
         }
     case DATA:
         log.Println("received DATA")
         time.Sleep(time.Second * 2)
         err, index, data := DecodeData(packet_buffer, packet_size)
         if err == nil {
-            this.HandleData(sender_addr, index, data)
+            this.HandleData(remote, index, data)
         }
     case RST:
         log.Println("received RST")
         log.Println("The file requested has been modified, restarting download")
-        remote := this.remotes[sender_addr.String()]
 
         // Resending REQ to restart download.
         this.conn.WriteToUDP(EncodeReq(remote.download_rid), sender_addr)
@@ -219,11 +225,10 @@ func (this Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, pa
     }
 }
 
-func (this Peer) CheckTimeouts() {
+func (this *Peer) CheckTimeouts() {
     now := time.Now()
 
-    for addrString, _ := range this.remotes {
-        client := this.remotes[addrString] // get by reference so we can update it, range would only get it by value
+    for addrString, client := range this.remotes {
         address, _ := net.ResolveUDPAddr("udp", addrString)
 
         if client.download_deadline.Before(now) && client.download_state != CLOSED {
@@ -242,7 +247,7 @@ func (this Peer) CheckTimeouts() {
     }
 }
 
-func (this Peer) ReadLoop() {
+func (this *Peer) ReadLoop() {
     buf := make([]byte, UDP_BUFFER_SIZE)
 
     for {
@@ -253,7 +258,7 @@ func (this Peer) ReadLoop() {
     }
 }
 
-func (this Peer) Run() {
+func (this *Peer) Run() {
     go this.ReadLoop()
 
     check_timeouts := time.NewTicker(time.Second * 1).C
@@ -271,7 +276,7 @@ func (this Peer) Run() {
     }
 }
 
-func (this Peer) Download(rid string, remote_addr *net.UDPAddr) {
+func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
     remote := new(RemoteClient)
     this.remotes[remote_addr.String()] = remote
 
@@ -282,9 +287,8 @@ func (this Peer) Download(rid string, remote_addr *net.UDPAddr) {
     log.Println("sent REQ")
 }
 
-func (this Peer) Upload(rid string, remote_addr *net.UDPAddr) {
-    remote := new(RemoteClient)
-    this.remotes[remote_addr.String()] = remote
+func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
+    remote := this.GetRemote(remote_addr)
 
     remote.download_rid = rid
     remote.download_state = HALF_OPEN
