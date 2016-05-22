@@ -134,6 +134,7 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     d := new(Download)
     if err := loadPartFile(download_file_path, size, hash, d); err == nil {
         // download loaded from .part file
+        log.Println("continuing download from part file")
         return d
     } else {
         log.Println(err.Error())
@@ -142,7 +143,7 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
     CheckError(err)
 
-    log.Println("initiating download")
+    log.Println("initiating new download")
 
     d.server = server
     d.port = port
