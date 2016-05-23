@@ -83,7 +83,7 @@ func DecodePush(packet []byte, size int) (error, string) {
 	if size <= 17 {
 		return errors.New("packet too short"), ""
 	}
-	return nil, string(packet[17:])
+	return nil, string(packet[17:size])
 }
 
 func EncodeGet(blockIndex uint32) []byte {
