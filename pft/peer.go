@@ -30,6 +30,8 @@ type RemoteClient struct {
     upload_rid              string
     upload_original_hash    []byte
     upload_file_path        string
+
+    // todo: push deadline
 }
 
 type Peer struct {
@@ -235,7 +237,6 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         }
     case PUSH_ACK:
         log.Println("received PUSH_ACK")
-        remote.download_state = OPEN
 
     case GET:
         err, index := DecodeGet(packet_buffer, packet_size)
@@ -327,7 +328,7 @@ func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
 
 func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     this.conn.WriteToUDP(EncodePush(rid), remote_addr)
-    log.Println("sent PUSH")
+    log.Println("sending push for", rid)
 }
 
 func printFileList() {
