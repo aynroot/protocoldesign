@@ -195,7 +195,7 @@ func (this *Peer) HandleData(remote *RemoteClient, index uint32, data []byte) {
         fmt.Println(remote.download.IndexPercent(index + 1), "%")
     }
 
-    remote.download_deadline = time.Now().Add(time.Second * 4)
+    remote.download_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
     remote.download.SaveData(index, data)
     this.DownloadNextBlock(remote)
 }
@@ -281,12 +281,12 @@ func (this *Peer) CheckTimeouts() {
                 log.Println("sent GET")
             }
 
-            client.download_deadline = time.Now().Add(time.Second * 4)
+            client.download_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
         }
 
         if client.push_rid != "" && client.push_deadline.Before(now) {
             this.conn.WriteToUDP(EncodePush(client.push_rid), client.addr)
-            client.push_deadline = time.Now().Add(time.Second * 4)
+            client.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
         }
     }
 }
@@ -327,14 +327,14 @@ func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
 
     remote.download_rid = rid
     remote.download_state = HALF_OPEN
-    remote.download_deadline = time.Now().Add(time.Second * 4)
+    remote.download_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
     this.conn.WriteToUDP(EncodeReq(rid), remote_addr)
     log.Println("sent REQ")
 }
 
 func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     remote := this.GetRemote(remote_addr)
-    remote.push_deadline = time.Now().Add(time.Second * 4)
+    remote.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
     remote.push_rid = rid
 
     this.conn.WriteToUDP(EncodePush(rid), remote.addr)

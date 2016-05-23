@@ -28,6 +28,8 @@ const (
 const DATA_BLOCK_SIZE = 491
 const UDP_BUFFER_SIZE = 1024
 
+const DEADLINE_SECONDS = 2
+
 func CheckError(err error) {
     if err != nil {
         fmt.Println("Error: ", err)
