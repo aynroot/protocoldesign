@@ -31,7 +31,8 @@ type RemoteClient struct {
     upload_original_hash    []byte
     upload_file_path        string
 
-    // todo: push deadline
+    push_rid          string
+    push_deadline     time.Time
 }
 
 type Peer struct {
@@ -237,6 +238,7 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         }
     case PUSH_ACK:
         log.Println("received PUSH_ACK")
+        remote.push_rid = ""
 
     case GET:
         err, index := DecodeGet(packet_buffer, packet_size)
@@ -266,21 +268,25 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
 func (this *Peer) CheckTimeouts() {
     now := time.Now()
 
-    for addrString, client := range this.remotes {
-        address, _ := net.ResolveUDPAddr("udp", addrString)
+    for _, client := range this.remotes {
 
         if client.download_deadline.Before(now) && client.download_state != CLOSED {
             if client.download_state == HALF_OPEN {
-                this.conn.WriteToUDP(EncodeReq(client.download_rid), address)
+                this.conn.WriteToUDP(EncodeReq(client.download_rid), client.addr)
                 log.Println("sent REQ")
             } else {
                 // state == OPEN
                 client.download.ResetGet()
-                this.conn.WriteToUDP(client.download.CreateNextGet(), address)
+                this.conn.WriteToUDP(client.download.CreateNextGet(), client.addr)
                 log.Println("sent GET")
             }
 
             client.download_deadline = time.Now().Add(time.Second * 4)
+        }
+
+        if client.push_rid != "" && client.push_deadline.Before(now) {
+            this.conn.WriteToUDP(EncodePush(client.push_rid), client.addr)
+            client.push_deadline = time.Now().Add(time.Second * 4)
         }
     }
 }
@@ -327,7 +333,11 @@ func (this *Peer) Download(rid string, remote_addr *net.UDPAddr) {
 }
 
 func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
-    this.conn.WriteToUDP(EncodePush(rid), remote_addr)
+    remote := this.GetRemote(remote_addr)
+    remote.push_deadline = time.Now().Add(time.Second * 4)
+    remote.push_rid = rid
+
+    this.conn.WriteToUDP(EncodePush(rid), remote.addr)
     log.Println("sending push for", rid)
 }
 
