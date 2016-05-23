@@ -69,14 +69,18 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
     remote.upload_state = CLOSED
 
     if strings.HasPrefix(rid, "file:") {
-        upload_file_path := filepath.Join(GetFileDir(), rid[5:])
+        upload_file_path := filepath.Clean(filepath.Join(GetFileDir(), rid[5:]))
+        if !strings.HasPrefix(upload_file_path, GetFileDir()) {
+            log.Println("Client trying to access files outside file dir")
+            this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
+            return
+        }
 
         f, err := os.Open(upload_file_path)
         stat, err := f.Stat()
         if err != nil {
-            log.Println("Error: " + err.Error())
+            log.Println("Client trying to access inaccessbile file", upload_file_path, "error is", err.Error())
             this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
-            log.Println("sent REQ-NACK")
             return
         }
 
@@ -87,14 +91,14 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
         req_ack := EncodeReqAck(uint64(stat.Size()), hash)
         this.conn.WriteToUDP(req_ack, remote.addr)
         remote.upload_state = OPEN
-        log.Println("sent REQ-ACK")
+        log.Println("serving file", upload_file_path)
     } else if rid == "file-list" {
         size, hash := GetFileListSizeAndHash(GetFileDir())
         req_ack := EncodeReqAck(size, hash)
         this.conn.WriteToUDP(req_ack, remote.addr)
         remote.upload_state = OPEN
         remote.upload_original_hash = hash
-        log.Println("sent REQ-ACK")
+        log.Println("serving file-list")
     } else {
         this.conn.WriteToUDP(EncodeReqNack(), remote.addr)
     }
