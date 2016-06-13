@@ -39,41 +39,14 @@ func main() {
     pft.CheckError(err)
     peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
 
+
+    // in progress
     chunk_path := "chunk_path"
 
     for _, node := range nodes_list {
         peer.Upload("file:" + chunk_path, node)
         peer.Run()
+        // this won't work because Run is inifinite + we have os.Exit on the "client" side
     }
-
-
-    // establish connection to every node
-
-    //} else {
-    //    // client mode: bind to random port
-    //    local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
-    //    pft.CheckError(err)
-    //
-    //    server := fmt.Sprintf("%s:%d", flag.Arg(0), *portArg)
-    //    server_addr, err := net.ResolveUDPAddr("udp", server)
-    //    pft.CheckError(err)
-    //
-    //    peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
-    //
-    //    if *uploadArg != "" {
-    //        // upload mode
-    //        peer.Upload("file:" + *uploadArg, server_addr)
-    //    } else {
-    //        // download mode
-    //
-    //        resource := "file-list" // download file list if no file specified
-    //        if *downloadArg != "" {
-    //            resource = "file:" + *downloadArg
-    //        }
-    //        peer.Download(resource, server_addr)
-    //    }
-    //
-    //    peer.Run()
-    //}
 
 }
