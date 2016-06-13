@@ -23,6 +23,7 @@ const (
 	GET      byte = 6
 	DATA     byte = 7
 	RST      byte = 8
+	CNTF	 byte = 9
 )
 
 const DATA_BLOCK_SIZE = 491

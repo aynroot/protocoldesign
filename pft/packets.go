@@ -109,3 +109,14 @@ func DecodeReqAck(packet []byte, size int) (error, uint64, []byte) {
 	resource_size := binary.BigEndian.Uint64(packet[17:25])
 	return nil, resource_size, packet[25:size]
 }
+
+func EncodeCntf(info_byte uint64, chunk_rid string) []byte {
+	return MakePacket(CNTF, append(ToBigEndian32(info_byte), []byte(chunk_rid)...))
+}
+
+func DecodeCntf(packet []byte, size int) (error, uint64, []byte) {
+	if size <= 18 { // 17 byte header, 1 byte info byte
+		return errors.New("packet too short"), 0
+	}
+	return nil, binary.BigEndian.Uint32(packet[17:18]), packet[18:size]
+}
