@@ -312,10 +312,8 @@ func (this *Peer) Run() {
     for {
         select {
         case <-regular_ticker:
-            fmt.Println(6)
             this.CheckTimeouts()
         case packet := <-this.read_chan:
-            fmt.Println(5)
             this.HandlePacket(packet.sender, packet.data, packet.size)
 
             if this.GetRemote(packet.sender).download_state == CLOSED {
