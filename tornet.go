@@ -116,13 +116,13 @@ func split(filename string, nodes int64) {
         }
         newFile.Close()
 
-        byteSlice := make([]byte, chunkoffset)
-
-        // Read chunk to be split
-        bytesRead, err := file.Read(byteSlice)
-        if err != nil {
-            log.Fatal(err)
-        }
+        //byteSlice := make([]byte, chunkoffset)
+        //
+        //// Read chunk to be split
+        //bytesRead, err := file.Read(byteSlice)
+        //if err != nil {
+        //    log.Fatal(err)
+        //}
 
 
     }
@@ -139,12 +139,6 @@ func split(filename string, nodes int64) {
     log.Println("Nodes: ", nodes)
     log.Println("Chunk Size: ", chunksize)
     log.Println("Chunk Offset: ", chunkoffset)
-
-
-
-
-
-
 
     return
 }
