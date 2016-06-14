@@ -1,13 +1,6 @@
 # protocoldesign
 
-Usage of protocoldesign.exe:
+tornet <files dir> <nodes list>
 
-\-d string: 	file to be downloaded
-
-\-s  		start in server mode
-
-\-t int 		port to contact/listen on (default 6222)
-
-\-u string 	file to be uploaded
-
-use -h to print this help
+<files dir> -- absolute path to the directory with peered files
+<nodes list> --  a list of nodes in format IP:PORT separated by spaces
