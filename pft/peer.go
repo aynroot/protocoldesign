@@ -316,7 +316,8 @@ func (this *Peer) Run() {
         case packet := <-this.read_chan:
             this.HandlePacket(packet.sender, packet.data, packet.size)
 
-            if this.GetRemote(packet.sender).download_state == CLOSED {
+            remote := this.GetRemote(packet.sender)
+            if remote.download_state == CLOSED && remote.upload_state == CLOSED {
                 return
             }
         }
