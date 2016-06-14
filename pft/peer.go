@@ -124,7 +124,7 @@ func (this *Peer) DownloadNextBlock(remote *RemoteClient) {
         if (remote.download_rid == "file-list") {
             printFileList()
         }
-        os.Exit(0)
+        remote.download_state = CLOSED
     } else {
         this.conn.WriteToUDP(remote.download.CreateNextGet(), remote.addr)
     }
@@ -228,7 +228,6 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         log.Println("received REQ_NACK")
         log.Println("File does not exist or is not currently available.")
         remote.download_state = CLOSED
-        os.Exit(0)
 
     case PUSH:
         log.Println("received PUSH")
@@ -313,9 +312,15 @@ func (this *Peer) Run() {
     for {
         select {
         case <-regular_ticker:
+            fmt.Println(6)
             this.CheckTimeouts()
         case packet := <-this.read_chan:
+            fmt.Println(5)
             this.HandlePacket(packet.sender, packet.data, packet.size)
+
+            if this.GetRemote(packet.sender).download_state == CLOSED {
+                return
+            }
         }
     }
 }

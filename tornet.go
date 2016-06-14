@@ -39,14 +39,15 @@ func main() {
     pft.CheckError(err)
     peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
 
-
     // in progress
     chunk_path := "chunk_path"
 
     for _, node := range nodes_list {
-        peer.Upload("file:" + chunk_path, node)
+        node_addr, err := net.ResolveUDPAddr("udp", node)
+        pft.CheckError(err)
+
+        peer.Upload("file:" + chunk_path, node_addr)
         peer.Run()
-        // this won't work because Run is inifinite + we have os.Exit on the "client" side
     }
 
 }
