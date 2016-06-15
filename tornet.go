@@ -7,9 +7,14 @@ import (
     "net"
     "protocoldesign/pft"
     "log"
-    //"path/filepath"
     "strconv"
 )
+
+type Chunk struct {
+    filename   string
+    chunkindex uint64
+    hash       []byte
+}
 
 func main() {
     fmt.Println(len(os.Args), os.Args)
@@ -56,86 +61,47 @@ func main() {
 
 }
 
-type Chunk struct {
-    filename   string
-    chunkindex uint64
-    hash       []byte
-}
+func split(filename string, n_nodes int64) {
+    var MEGABYTE int64 = 1024 * 1024
 
-func split(filename string, nodes int64) {
-
-    var MEGABYTE int64 = (1024 * 1024)
-
-    // Open file for reading
     file, err := os.Open(filename)
-    if err != nil {
-        log.Fatal(err)
-    }
+    pft.CheckError(err)
     defer file.Close()
 
-    fileInfo, err := os.Stat(filename)
-    if err != nil {
-        log.Fatal(err)
+    file_info, err := os.Stat(filename)
+    pft.CheckError(err)
+
+    size := file_info.Size()
+    chunk_size := pft.Min(pft.Max(1 * MEGABYTE, size / n_nodes), 100 * MEGABYTE)
+    log.Println("Size (bytes): ", size)
+    log.Println("Chunk size: ", chunk_size)
+
+    n_chunks := size / chunk_size
+    log.Println("Number of full chunks: ", n_chunks)
+
+    file_name := file_info.Name()
+    os.MkdirAll(file_name, 0744)
+
+    for i := 0; int64(i) < n_chunks; i++ {
+        writeChunk(file_name + "/" + file_name + ".part" + strconv.Itoa(i), file, chunk_size)
     }
 
-    // name of the file
-    name := fileInfo.Name()
-
-    var sizeB, sizeM, parts, max, chunksize int64
-
-    sizeB = fileInfo.Size()
-    sizeM = sizeB / MEGABYTE
-
-    if ((sizeM / nodes) > 1) {
-        max = (sizeM / nodes)
-    } else {
-        max = 1
+    tail_size := size % chunk_size
+    if (tail_size != 0) {
+        writeChunk(file_name + "/" + file_name + ".part" + strconv.Itoa(int(n_chunks)), file, tail_size)
     }
+}
 
-    if (max < 100) {
-        chunksize = max // Size in MB
-    } else {
-        chunksize = 100 // Size in MB
-    }
+func writeChunk(location string, file *os.File, size int64) {
+    chunk_data := make([]byte, size)
+    bytes_read, err := file.Read(chunk_data)
+    pft.CheckError(err)
+    log.Printf("Number of bytes read: %d\n", bytes_read)
+    log.Printf("Wrote to file: %s\n", location)
 
-    chunkoffset := MEGABYTE * chunksize  // limit to read
+    new_file, err := os.Create(location)
+    pft.CheckError(err)
 
-    // Divide depending on the megabytes
-
-    os.MkdirAll(name, 0777)
-
-    parts = (sizeM / chunksize)
-
-    for i := 0; int64(i) < parts; i++ {
-
-        newFile, err := os.Create(name + "/" + name + ".part" + strconv.Itoa(i))
-        if err != nil {
-            log.Fatal(err)
-        }
-        newFile.Close()
-
-        //byteSlice := make([]byte, chunkoffset)
-        //
-        //// Read chunk to be split
-        //bytesRead, err := file.Read(byteSlice)
-        //if err != nil {
-        //    log.Fatal(err)
-        //}
-
-    }
-
-    byteSlice := make([]byte, chunkoffset)
-    bytesRead, err := file.Read(byteSlice)
-    if err != nil {
-        log.Fatal(err)
-    }
-    log.Printf("Number of bytes read: %d\n", bytesRead)
-    log.Printf("Data read: %s\n", byteSlice)
-    log.Println("Size Bytes: ", sizeB)
-    log.Println("Size MB: ", sizeM)
-    log.Println("Nodes: ", nodes)
-    log.Println("Chunk Size: ", chunksize)
-    log.Println("Chunk Offset: ", chunkoffset)
-
-    return
+    new_file.Write(chunk_data)
+    new_file.Close()
 }
