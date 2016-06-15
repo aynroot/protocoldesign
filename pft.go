@@ -66,6 +66,7 @@ func main() {
 
         peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
         peer.Run()
+        fmt.Println("asaaaaaaaaaaaaaaaaaaaa")
 
     } else {
         // client mode: bind to random port
