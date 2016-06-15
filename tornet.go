@@ -43,8 +43,6 @@ func main() {
     peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
 
 
-
-
     // in progress
     chunk_path := "chunk_path"
 
@@ -58,15 +56,15 @@ func main() {
 
 }
 
-type Chunk struct{
-    filename        string
-    chunkindex      uint64
-    hash            []byte
+type Chunk struct {
+    filename   string
+    chunkindex uint64
+    hash       []byte
 }
 
 func split(filename string, nodes int64) {
 
-    var MEGABYTE int64 = (1024*1024)
+    var MEGABYTE int64 = (1024 * 1024)
 
     // Open file for reading
     file, err := os.Open(filename)
@@ -83,20 +81,20 @@ func split(filename string, nodes int64) {
     // name of the file
     name := fileInfo.Name()
 
-    var sizeB,sizeM,parts,max,chunksize int64
+    var sizeB, sizeM, parts, max, chunksize int64
 
     sizeB = fileInfo.Size()
     sizeM = sizeB / MEGABYTE
 
-    if ((sizeM /nodes) > 1){
-        max = (sizeM /nodes)
-    }else{
+    if ((sizeM / nodes) > 1) {
+        max = (sizeM / nodes)
+    } else {
         max = 1
     }
 
-    if (max < 100){
+    if (max < 100) {
         chunksize = max // Size in MB
-    }else{
+    } else {
         chunksize = 100 // Size in MB
     }
 
@@ -106,11 +104,11 @@ func split(filename string, nodes int64) {
 
     os.MkdirAll(name, 0777)
 
-    parts = (sizeM/chunksize)
+    parts = (sizeM / chunksize)
 
-    for i := 0; int64(i) < parts; i++{
+    for i := 0; int64(i) < parts; i++ {
 
-        newFile, err := os.Create(name+"/"+name+".part"+ strconv.Itoa(i))
+        newFile, err := os.Create(name + "/" + name + ".part" + strconv.Itoa(i))
         if err != nil {
             log.Fatal(err)
         }
