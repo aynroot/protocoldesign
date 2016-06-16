@@ -4,15 +4,9 @@ import (
     "fmt"
     "os"
     "path/filepath"
-    "net"
-    "protocoldesign/pft"
+    "protocoldesign/tornet"
+    "log"
 )
-
-type Chunk struct {
-    filename   string
-    chunkindex uint64
-    hash       []byte
-}
 
 func main() {
     fmt.Println(len(os.Args), os.Args)
@@ -28,7 +22,6 @@ func main() {
     var files_list []string;
     filepath.Walk(files_dir, func(path string, f os.FileInfo, err error) error {
         if !f.IsDir() {
-            path = filepath.ToSlash(path[len(files_dir) + 1:])
             files_list = append(files_list, path)
         }
         return nil
@@ -38,20 +31,15 @@ func main() {
     fmt.Println(files_list)
     fmt.Println(nodes_list)
 
-    os.Exit(1)
+    if (len(files_list) == 0) {
+        fmt.Println("Please, specify files directory with the files you want to distribute.")
+    }
+    if (len(nodes_list) == 0) {
+        fmt.Println("Please, specify p2p nodes addresses in format IP:PORT.")
+    }
 
-    // bind to a random port
-    local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
-    pft.CheckError(err)
-    peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
-
-
-    // in progress
-    chunk_path := "chunk_path"
-
-    for _, node := range nodes_list {
-        peer.Upload("file:" + chunk_path, node)
-        peer.Run()
-        // this won't work because Run is inifinite + we have os.Exit on the "client" side
+    for _, file_path := range files_list {
+        log.Println(file_path)
+        tornet.DistributeFile(string(file_path), nodes_list)
     }
 }

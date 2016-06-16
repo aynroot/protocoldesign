@@ -19,20 +19,21 @@ type InboundPacket struct {
 }
 
 type RemoteClient struct {
-    addr    *net.UDPAddr
+    addr                 *net.UDPAddr
 
-    download_deadline time.Time // if this deadline is passed, resend last packet
-    download_state    int
-    download_rid      string    // for when state == HALF_OPEN: REQ or it's answer may get lost, so we need this for timeouts
-    download          *Download  // this is for ACK'ed downloads, do not put download_state and download_rid into Download struct
+    download_deadline    time.Time // if this deadline is passed, resend last packet
+    download_state       int
+    download_rid         string    // for when state == HALF_OPEN: REQ or it's answer may get lost, so we need this for timeouts
+    download             *Download // this is for ACK'ed downloads, do not put download_state and download_rid into Download struct
 
-    upload_state            int
-    upload_rid              string
-    upload_original_hash    []byte
-    upload_file_path        string
+    upload_state         int
+    upload_rid           string
+    upload_original_hash []byte
+    upload_file_path     string
+    upload_file_size     uint64
 
-    push_rid          string
-    push_deadline     time.Time
+    push_rid             string
+    push_deadline        time.Time
 }
 
 type Peer struct {
@@ -90,6 +91,7 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
         hash := GetFileHash(upload_file_path)
         remote.upload_original_hash = hash
         remote.upload_file_path = upload_file_path
+        remote.upload_file_size = uint64(stat.Size())
 
         req_ack := EncodeReqAck(uint64(stat.Size()), hash)
         this.conn.WriteToUDP(req_ack, remote.addr)
@@ -107,7 +109,6 @@ func (this *Peer) HandleReq(remote *RemoteClient, rid string) {
     }
 }
 
-
 func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
     rid = filepath.FromSlash(rid)
     log.Println("got push for rid:" + rid)
@@ -116,7 +117,6 @@ func (this *Peer) HandlePush(remote *RemoteClient, rid string) {
 
     this.Download(rid, remote.addr)
 }
-
 
 func (this *Peer) DownloadNextBlock(remote *RemoteClient) {
     if remote.download.IsFinished() {
@@ -130,7 +130,6 @@ func (this *Peer) DownloadNextBlock(remote *RemoteClient) {
     }
 }
 
-
 func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
     if remote.download_state == HALF_OPEN {
         remote.download = InitDownload(remote.addr.IP.String(), remote.addr.Port, remote.download_rid, size, hash)
@@ -139,7 +138,6 @@ func (this *Peer) HandleReqAck(remote *RemoteClient, size uint64, hash []byte) {
         this.DownloadNextBlock(remote)
     }
 }
-
 
 func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
     if remote.upload_state != OPEN {
@@ -168,7 +166,7 @@ func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
         hashCheck := GetFileHash(remote.upload_file_path)
 
         // Checks if the file has been modified.
-        if bytes.Equal(remote.upload_original_hash, hashCheck){
+        if bytes.Equal(remote.upload_original_hash, hashCheck) {
 
             data_block, err := GetDataBlock(remote.upload_rid, index)
             if err == nil {
@@ -177,6 +175,9 @@ func (this *Peer) HandleGet(remote *RemoteClient, index uint32) {
                 fmt.Println(err.Error())
             }
 
+            if (uint64(index + 1) * DATA_BLOCK_SIZE >= remote.upload_file_size) {
+                remote.upload_state = CLOSED
+            }
         } else {
             this.conn.WriteToUDP(EncodeRst(), remote.addr)
             log.Println("sent RST")
@@ -340,6 +341,7 @@ func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     remote := this.GetRemote(remote_addr)
     remote.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
     remote.push_rid = rid
+    remote.upload_state = OPEN
 
     this.conn.WriteToUDP(EncodePush(rid), remote.addr)
     log.Println("sending push for", rid)

@@ -21,7 +21,7 @@ func generateRandomString() string {
     return string(b)
 }
 
-func changeDir(local_addr *net.UDPAddr) {
+func ChangeDir(local_addr *net.UDPAddr) {
     dir := strings.Replace(local_addr.String(), ":", "_", -1)
     if (local_addr.Port == 0) {
         rand_string := generateRandomString()
@@ -62,7 +62,7 @@ func main() {
         // server mode, bind to given port
         local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(*portArg))
         pft.CheckError(err)
-        changeDir(local_addr)
+        ChangeDir(local_addr)
 
         peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
         peer.Run()
@@ -71,7 +71,7 @@ func main() {
         // client mode: bind to random port
         local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
         pft.CheckError(err)
-        changeDir(local_addr)
+        ChangeDir(local_addr)
 
         server := fmt.Sprintf("%s:%d", flag.Arg(0), *portArg)
         server_addr, err := net.ResolveUDPAddr("udp", server)
