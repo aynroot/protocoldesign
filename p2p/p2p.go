@@ -72,7 +72,7 @@ func main() {
         server_addr, err := net.ResolveUDPAddr("udp", server)
         pft.CheckError(err)
 
-        peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
+        peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
 
         // download mode
 
