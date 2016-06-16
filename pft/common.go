@@ -42,7 +42,7 @@ func GetFileDir() string {
     wd, err := os.Getwd()
     CheckError(err)
     file_dir := filepath.Join(wd, "pft-files")
-    err = os.MkdirAll(file_dir, 0644)
+    err = os.MkdirAll(file_dir, 0744)
     CheckError(err)
     return file_dir
 }

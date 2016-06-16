@@ -41,7 +41,7 @@ func (this *Download) SaveData(index uint32, payload []byte) bool {
 
 // saves the internal variables to a partial download file
 func (this *Download) CreatePartFile(path string) {
-    file, err := os.OpenFile(path, os.O_TRUNC | os.O_WRONLY | os.O_CREATE, 0644)
+    file, err := os.OpenFile(path, os.O_TRUNC | os.O_WRONLY | os.O_CREATE, 0744)
     CheckError(err)
     defer file.Close()
 
@@ -61,13 +61,13 @@ func (this *Download) Close() {
 // loads the internal variables from a partial download file
 func loadPartFile(download_file_path string, size uint64, hash []byte, d *Download) error {
     part_file_path := download_file_path + ".part"
-    part_file, err := os.OpenFile(part_file_path, os.O_RDONLY, 0644)
+    part_file, err := os.OpenFile(part_file_path, os.O_RDONLY, 0744)
     if err != nil {
         return err
     }
     defer part_file.Close()
 
-    download_file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_APPEND, 0644)
+    download_file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_APPEND, 0744)
     if err != nil {
         return err
     }
@@ -140,8 +140,8 @@ func InitDownload(server string, port int, rid string, size uint64, hash []byte)
     log.Println("download of file", download_file_path)
     log.Println("creating dir", filepath.Dir(download_file_path))
 
-    os.MkdirAll(filepath.Dir(download_file_path), 0644)
-    file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644)
+    os.MkdirAll(filepath.Dir(download_file_path), 0744)
+    file, err := os.OpenFile(download_file_path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0744)
     CheckError(err)
 
     log.Println("initiating new download of size", size)
