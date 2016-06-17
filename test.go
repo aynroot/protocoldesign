@@ -79,7 +79,7 @@ func runClient(){
 }
 
 func main() {
-    ownPublishPortArg := flag.Int("p", 4455, "ownPublishPortArg")
+    port := flag.Int("p", 4455, "ownPublishPortArg")
     flag.Parse()
 
     fmt.Println("Number of CPUs: ", runtime.NumCPU())
@@ -90,7 +90,7 @@ func main() {
 
     fmt.Println("Starting Go Routines")
 
-    go runServer(*ownPublishPortArg)
+    go runServer(*port)
     go runClient()
 
     fmt.Println("Waiting to finish...")
