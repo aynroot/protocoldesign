@@ -6,35 +6,9 @@ import (
     "protocoldesign/pft"
     "net"
     "strconv"
-    "os"
-    "strings"
     "math/rand"
     "time"
 )
-
-func generateRandomString() string {
-    var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    b := make([]rune, 10)
-    for i := range b {
-        b[i] = letterRunes[rand.Intn(len(letterRunes))]
-    }
-    return string(b)
-}
-
-func ChangeDir(local_addr *net.UDPAddr) {
-    dir := strings.Replace(local_addr.String(), ":", "_", -1)
-    if (local_addr.Port == 0) {
-        rand_string := generateRandomString()
-        dir = dir + "_" + rand_string
-    }
-
-    err := os.MkdirAll(dir + "/pft-files", 0755)
-    pft.CheckError(err)
-    err = os.Chdir(dir)
-    pft.CheckError(err)
-
-    fmt.Println("current dir is: " + dir)
-}
 
 func main() {
     portArg := flag.Int("t", 6222, "port to contact/listen on")
@@ -62,7 +36,7 @@ func main() {
         // server mode, bind to given port
         local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(*portArg))
         pft.CheckError(err)
-        ChangeDir(local_addr)
+        pft.ChangeDir(local_addr)
 
         peer := pft.MakePeer(local_addr, nil) // accept packets from any remote
         peer.Run()
@@ -71,7 +45,7 @@ func main() {
         // client mode: bind to random port
         local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
         pft.CheckError(err)
-        ChangeDir(local_addr)
+        pft.ChangeDir(local_addr)
 
         server := fmt.Sprintf("%s:%d", flag.Arg(0), *portArg)
         server_addr, err := net.ResolveUDPAddr("udp", server)

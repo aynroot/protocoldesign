@@ -6,6 +6,8 @@ import (
 	"strings"
 	"errors"
 	"path/filepath"
+	"net"
+	"math/rand"
 )
 
 const (
@@ -72,4 +74,28 @@ func Max(x, y int64) int64 {
 	return y
 }
 
+
+func generateRandomString() string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+func ChangeDir(local_addr *net.UDPAddr) {
+	dir := strings.Replace(local_addr.String(), ":", "_", -1)
+	if (local_addr.Port == 0) {
+		rand_string := generateRandomString()
+		dir = dir + "_" + rand_string
+	}
+
+	err := os.MkdirAll(dir + "/pft-files", 0755)
+	CheckError(err)
+	err = os.Chdir(dir)
+	CheckError(err)
+
+	fmt.Println("current dir is: " + dir)
+}
 
