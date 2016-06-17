@@ -27,7 +27,7 @@ func runClient(){
         reader := bufio.NewReader(os.Stdin)
         fmt.Print("Request File: ")
         file_name, _ := reader.ReadString('\n')
-        file_name = file_name[len(file_name) - 8:7] //TODO: Change to use all strings, not only seven character strings e.g. uno.txt
+        file_name = file_name[len(file_name) - 8:7] //TODO: only seven character strings e.g. uno.txt
         fmt.Print("file_name: ")
         fmt.Println(file_name)
 

@@ -10,9 +10,9 @@ import (
 )
 
 type Chunk struct {
-    file_path   string
-    chunk_index uint64
-    hash        []byte
+    FilePath   string `json:"file_path"`
+    ChunkIndex uint64 `json:"chunk_index"`
+    Hash       []byte `json:"hash"`
 }
 
 func SplitInChunks(file_path string, n_nodes int64) []Chunk {
@@ -64,9 +64,9 @@ func createChunk(location string, index int, file *os.File, size int64) Chunk {
 
     hash := sha3.Sum256(chunk_data)
     chunk := Chunk{
-        chunk_index: uint64(index),
-        file_path: location,
-        hash: hash[:],
+        ChunkIndex: uint64(index),
+        FilePath: location[len("pft-files/"):],
+        Hash: hash[:],
     }
 
     return chunk
