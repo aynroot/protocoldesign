@@ -9,20 +9,8 @@ import (
     "strconv"
     "time"
     "math/rand"
+    "protocoldesign/p2p"
 )
-
-func getChunksFromTracker(port int, tracker_addr *net.UDPAddr){
-    local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(port))
-    pft.ChangeDir(local_addr)
-    pft.CheckError(err)
-
-    // continuously accept all chunks that tracker tries to push
-    peer := pft.MakePeer(local_addr, tracker_addr)
-    for true {
-        peer.Run()
-        fmt.Println("Chunk is received")
-    }
-}
 
 func main() {
     rand.Seed(time.Now().UnixNano())
@@ -40,5 +28,5 @@ func main() {
 
     tracker_addr, err := net.ResolveUDPAddr("udp", *tracker)
     pft.CheckError(err)
-    getChunksFromTracker(*port, tracker_addr)
+    p2p.GetChunksFromTracker(*port, tracker_addr)
 }

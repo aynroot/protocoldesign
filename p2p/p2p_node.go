@@ -5,24 +5,24 @@ import (
     "protocoldesign/pft"
     "protocoldesign/tornet"
     "fmt"
-    "runtime"
-    "sync"
-    "flag"
     "strconv"
-    "time"
-    "math/rand"
     "strings"
-    "os"
-    "log"
 )
 
-type DownloadedFile struct {
-    file_path    string
-    file_hash    []byte
-    local_chunks []tornet.Chunk
+func GetChunksFromTracker(port int, tracker_addr *net.UDPAddr){
+    local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(port))
+    pft.ChangeDir(local_addr)
+    pft.CheckError(err)
+
+    // continuously accept all chunks that tracker tries to push
+    peer := pft.MakePeer(local_addr, tracker_addr)
+    for true {
+        peer.Run()
+        fmt.Println("Chunk is received")
+    }
 }
 
-func runLocalServer(port int) {
+func RunLocalServer(port int) {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(port))
     pft.CheckError(err)
     pft.ChangeDir(local_addr)
@@ -60,7 +60,7 @@ func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
     // TODO
 }
 
-func runDownloader(torrent tornet.Torrent) {
+func RunDownloader(torrent tornet.Torrent) {
     file := DownloadedFile{
         file_path: torrent.FilePath,
         file_hash: torrent.FileHash,
@@ -75,39 +75,4 @@ func runDownloader(torrent tornet.Torrent) {
     }
     MergeFile(file)
     fmt.Printf("Saved file %s on disk\n\n", file.file_path)
-}
-
-func main() {
-    rand.Seed(time.Now().UnixNano())
-    port := flag.Int("p", -1, "port to bind this node to")
-    flag.Parse()
-
-    if *port == -1 {
-        fmt.Println("Please specify port number to bind this node to.")
-        os.Exit(1)
-    }
-    if len(flag.Args()) > 1 {
-        fmt.Println("Too many command line parameters")
-        os.Exit(1)
-    }
-
-    runtime.GOMAXPROCS(runtime.NumCPU())
-    var wg sync.WaitGroup
-    wg.Add(2)
-
-    fmt.Println("Starting upload routine")
-    go runLocalServer(*port)
-
-    if len(flag.Args()) > 0 {
-        torrent_file_name := flag.Args()[0]
-        torrent_file := tornet.Torrent{}
-        torrent_file.Read(torrent_file_name)
-        log.Println(torrent_file)
-
-        fmt.Println("Starting download routine")
-        go runDownloader(torrent_file)
-    }
-
-    wg.Wait()
-    fmt.Println("\n...terminating")
 }

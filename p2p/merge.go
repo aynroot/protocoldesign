@@ -10,6 +10,12 @@ import (
     "io"
 )
 
+type DownloadedFile struct {
+    file_path    string
+    file_hash    []byte
+    local_chunks []tornet.Chunk
+}
+
 func deepCompare(file1, file2 string) bool {
     const chunkSize = 64000
 
