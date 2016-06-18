@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"golang.org/x/crypto/sha3"
+//	"fmt"
 )
 
 // calculates hash and concatenates packet to single []byte
@@ -110,13 +111,21 @@ func DecodeReqAck(packet []byte, size int) (error, uint64, []byte) {
 	return nil, resource_size, packet[25:size]
 }
 
-func EncodeCntf(info_byte uint32, chunk_rid string) []byte {
-	return MakePacket(CNTF, append(ToBigEndian32(info_byte), []byte(chunk_rid)...))
+func EncodeCntf(chunk_index uint32, chunk_rid string) []byte {
+	//TODO: use chunk index
+	//TODO: correct fields in package
+	return MakePacket(CNTF, append(ToBigEndian32(0), []byte(chunk_rid)...))
 }
 
 func DecodeCntf(packet []byte, size int) (error, uint32, []byte) {
+	//fmt.Println(packet)
+	//fmt.Println(size)
 	if size <= 18 { // 17 byte header, 1 byte info byte
 		return errors.New("packet too short"), 0, nil
 	}
-	return nil, binary.BigEndian.Uint32(packet[17:18]), packet[18:size]
+	//fmt.Println(packet[17:18])
+	//TODO: Activate big endian: we had some issues with 0 in the array
+	//return nil, binary.BigEndian.Uint32(packet[17:18]), []byte{0, 0, 0, 0, 0}// packet[18:size]
+	return nil, 0, packet[18:size]
 }
+

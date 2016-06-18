@@ -55,8 +55,26 @@ func downloadChunk(chunk tornet.Chunk) tornet.Chunk {
     return local_chunk
 }
 
+
+
+// TODO
 func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
-    // TODO
+    //var tracker_port = 4455
+    local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+    pft.CheckError(err)
+    //pft.ChangeDir(local_addr)
+
+    server := fmt.Sprintf("%s:%d", "localhost", 4455)
+    server_addr, err := net.ResolveUDPAddr("udp", server)
+    pft.CheckError(err)
+
+    fmt.Println(local_addr)
+    fmt.Println(server_addr)
+
+    peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
+    fmt.Println(peer)
+    peer.SendNotification(uint32(chunk.ChunkIndex), chunk.FilePath, server_addr)
+    peer.Run()
 }
 
 func mergeFile(DownloadedFile) {
