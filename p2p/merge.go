@@ -57,12 +57,12 @@ func MergeFile(Chunks []string) bool {
 
 	if bytes.Equal(Mergedhash, FileHash) {
 
-		log.Printf("File reconstructed successfuly", location)
+		log.Println("File reconstructed successfuly", location)
 		return true
 
 	} else {
 
-		log.Printf("The file was corrupt, and has been deleted.")
+		log.Println("The file was corrupt, and has been deleted.")
 		err := os.Remove(location)
 		pft.CheckError(err)
 		return false
