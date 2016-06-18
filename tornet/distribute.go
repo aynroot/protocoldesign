@@ -17,7 +17,7 @@ type Torrent struct {
     Chunks    []Chunk `json:"chunks"`
 }
 
-func calcHash(file_path string) []byte {
+func CalcHash(file_path string) []byte {
     file, err := os.Open(file_path)
     pft.CheckError(err)
     defer file.Close()
@@ -36,7 +36,7 @@ func DistributeFile(peer pft.Peer, local_addr *net.UDPAddr, file_path string, no
     tornet_file := Torrent{
         TrackerIP: local_addr.String(),
         FilePath: path_without_parent_dir,
-        FileHash: calcHash(file_path),
+        FileHash: CalcHash(file_path),
     }
     for chunk_index := 0; chunk_index < len(chunks); chunk_index++ {
         node_index := chunk_index % n_nodes
