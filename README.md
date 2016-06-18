@@ -18,3 +18,13 @@ tip: put files you need to distribute in the folder _other_ than pft-files (i.e.
 
 after tornet terminates, you will have chunks on each node that have run 'prepare' + torrent files generated (torrent-files/*)
 stop 'prepare' process on nodes
+
+
+# tornet
+
+run two nodes that store the chunks
+and one more node that downloads the specific file
+for example:
+    p2p_node.go -p 4466
+    p2p_node.go -p 4467
+    p2p_node.go -p 4468 torrent-files/test.pdf.torrent
