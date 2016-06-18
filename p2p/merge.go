@@ -6,13 +6,67 @@ import (
     "protocoldesign/tornet"
     "os"
     "bytes"
+    "fmt"
+    "io"
 )
+
+func deepCompare(file1, file2 string) bool {
+    const chunkSize = 64000
+
+    f1s, err := os.Stat(file1)
+    if err != nil {
+        log.Fatal(err)
+    }
+    f2s, err := os.Stat(file2)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    if f1s.Size() != f2s.Size() {
+        fmt.Println(f1s.Size())
+        fmt.Println(f2s.Size())
+        return false
+    }
+
+    f1, err := os.Open(file1)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    f2, err := os.Open(file2)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    for {
+        b1 := make([]byte, chunkSize)
+        _, err1 := f1.Read(b1)
+
+        b2 := make([]byte, chunkSize)
+        _, err2 := f2.Read(b2)
+
+        if err1 != nil || err2 != nil {
+            if err1 == io.EOF && err2 == io.EOF {
+                return true
+            } else if err1 == io.EOF || err2 == io.EOF {
+                return false
+            } else {
+                log.Fatal(err1, err2)
+            }
+        }
+
+        if !bytes.Equal(b1, b2) {
+            return false
+        }
+    }
+}
 
 func Test() {
     torrent_file_name := "torrent-files/test.pdf.torrent"
     torrent := tornet.Torrent{}
     torrent.Read(torrent_file_name)
-    log.Println(torrent)
+
+    fmt.Println(torrent.FileHash)
 
     file := DownloadedFile{
         file_path: torrent.FilePath,
@@ -36,6 +90,7 @@ func Test() {
 func MergeFile(file DownloadedFile) bool {
     file_hash := file.file_hash
     location := "pft-files/" + file.file_path
+    fmt.Println(location)
 
     // open (if doesn't exists, create) file in append mode.
     merged_file, err := os.OpenFile(location, os.O_CREATE | os.O_APPEND | os.O_WRONLY, 0744)
@@ -67,7 +122,13 @@ func MergeFile(file DownloadedFile) bool {
         merged_file.Write(chunk_data)
     }
     merged_file.Close()
+
+    hash := tornet.CalcHash("tornet-files/test.pdf")
+    fmt.Println(hash)
     merged_hash := tornet.CalcHash(location)
+    fmt.Println(merged_hash)
+
+    fmt.Println(deepCompare(location, "tornet-files/test.pdf"))
 
     if bytes.Equal(merged_hash, file_hash) {
         log.Println("File reconstructed successfuly: ", location)
