@@ -8,14 +8,14 @@ import (
 	"bytes"
 )
 
-//TODO to change []String -> Chunks []tornet.Chunk, once everything is in place.
-func MergeFile(Chunks []string, FileHash  []byte) bool {
+//TODO receive the path to the torrent OR the torrent
+func MergeFile(Chunks []string) bool {
 
 	// Extract data
 	torrent_file_name := "torrent-files/test.pdf.torrent"
 	torrent_file := tornet.Torrent{}
 	torrent_file.Read(torrent_file_name)
-	FileHash = torrent_file.FileHash
+	FileHash := torrent_file.FileHash
 
 	location := "pft-files/" + torrent_file.FilePath
 

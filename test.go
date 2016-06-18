@@ -71,9 +71,7 @@ func main() {
     //
     //fmt.Println("\n...terminating")
 
-    var hash []byte
-
     files :=[]string{"pft-files/_test.pdf/test.pdf.part0", "pft-files/_test.pdf/test.pdf.part1"}
 
-    p2p.MergeFile(files,hash)
+    p2p.MergeFile(files)
 }
