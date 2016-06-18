@@ -44,7 +44,8 @@ type Peer struct {
 }
 
 func MakePeer(localAddr *net.UDPAddr, remoteAddr *net.UDPAddr) Peer {
-    conn, _ := net.ListenUDP("udp", localAddr)
+    conn, err := net.ListenUDP("udp", localAddr)
+    CheckError(err)
 
     return Peer{
         remote_filter: remoteAddr,

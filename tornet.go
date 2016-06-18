@@ -12,14 +12,14 @@ import (
 )
 
 func main() {
-    port := flag.Int("-p", 4455, "port to listen to")
-    fmt.Println(len(os.Args), os.Args)
+    port := flag.Int("p", 4455, "port to listen to")
+    flag.Parse()
 
     var files_dir string;
     var nodes_list []string;
 
-    files_dir = os.Args[1]
-    for _, arg := range os.Args[2:] {
+    files_dir = flag.Args()[0]
+    for _, arg := range flag.Args()[1:] {
         nodes_list = append(nodes_list, arg);
     }
 
@@ -45,9 +45,10 @@ func main() {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(*port))
     pft.CheckError(err)
 
+    peer := pft.MakePeer(local_addr, nil)
     for _, file_path := range files_list {
         fmt.Println("Distributing file: ", file_path)
-        torrent_file := tornet.DistributeFile(local_addr, string(file_path), nodes_list)
+        torrent_file := tornet.DistributeFile(peer, local_addr, string(file_path), nodes_list)
         torrent_file_path := torrent_file.Write("torrent-files")
         fmt.Println("Created *.torrent file: ", torrent_file_path)
     }

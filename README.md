@@ -1,16 +1,20 @@
 # protocoldesign
 
-tornet <files dir> <nodes list>
 
+# testbed
+
+prepare -p <port1>
+prepare -p <port2>
+tornet -p <port> <files dir> <nodes list>
+
+<port> -- on which port to bind the tracker
+<port1>, <port2> -- on whic ports to bind the p2p nodes that accepts the chunks
 <files dir> -- absolute path to the directory with peered files
-<nodes list> --  a list of nodes in format IP:PORT separated by spaces
+<nodes list> --  a list of nodes in format IP:PORT separated by spaces (use nodes which run 'prepare')
 
 tip: put files you need to distribute in the folder _other_ than pft-files (i.e. tornet-files)
      to avoid problems with serving files that start with underscore
 
 
-# what's left
-
-- test.go -> p2p.go with the rest of the logic
-
-important: don't change the dir structure (127.0.0.1_PORT/pft-files/...)
+after tornet terminates, you will have chunks on each node that have run 'prepare' + torrent files generated (torrent-files/*)
+stop 'prepare' process on nodes

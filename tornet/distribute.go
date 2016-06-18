@@ -27,8 +27,7 @@ func calcHash(file_path string) []byte {
     return hasher.Sum(nil)
 }
 
-func DistributeFile(local_addr *net.UDPAddr, file_path string, nodes_list []string) Torrent {
-    peer := pft.MakePeer(local_addr, nil)
+func DistributeFile(peer pft.Peer, local_addr *net.UDPAddr, file_path string, nodes_list []string) Torrent {
     chunks := SplitInChunks(file_path, int64(len(nodes_list)))
     n_nodes := len(nodes_list)
 
