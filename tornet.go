@@ -1,14 +1,15 @@
 package main
 
 import (
-    "fmt"
-    "os"
+
     "flag"
     "path/filepath"
-    "protocoldesign/tornet"
+    "os"
+    "fmt"
     "net"
     "strconv"
     "protocoldesign/pft"
+    "protocoldesign/tornet"
 )
 
 func main() {
@@ -53,6 +54,7 @@ func main() {
         fmt.Println("Created *.torrent file: ", torrent_file_path)
     }
 
+    // TODO WTF IS THIS SHIT
     // server mode, bind to given port
     //local_addr1, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(4455))
     //pft.CheckError(err)

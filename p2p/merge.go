@@ -7,64 +7,12 @@ import (
     "os"
     "bytes"
     "fmt"
-    "io"
 )
 
 type DownloadedFile struct {
     file_path    string
     file_hash    []byte
     local_chunks []tornet.Chunk
-}
-
-func deepCompare(file1, file2 string) bool {
-    const chunkSize = 64000
-
-    f1s, err := os.Stat(file1)
-    if err != nil {
-        log.Fatal(err)
-    }
-    f2s, err := os.Stat(file2)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    if f1s.Size() != f2s.Size() {
-        fmt.Println(f1s.Size())
-        fmt.Println(f2s.Size())
-        return false
-    }
-
-    f1, err := os.Open(file1)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    f2, err := os.Open(file2)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    for {
-        b1 := make([]byte, chunkSize)
-        _, err1 := f1.Read(b1)
-
-        b2 := make([]byte, chunkSize)
-        _, err2 := f2.Read(b2)
-
-        if err1 != nil || err2 != nil {
-            if err1 == io.EOF && err2 == io.EOF {
-                return true
-            } else if err1 == io.EOF || err2 == io.EOF {
-                return false
-            } else {
-                log.Fatal(err1, err2)
-            }
-        }
-
-        if !bytes.Equal(b1, b2) {
-            return false
-        }
-    }
 }
 
 func Test() {
@@ -100,7 +48,7 @@ func MergeFile(file DownloadedFile) bool {
     fmt.Println(location)
 
     // open (if doesn't exists, create) file in append mode.
-    merged_file, err := os.OpenFile(location, os.O_CREATE | os.O_APPEND | os.O_WRONLY, 0744)
+    merged_file, err := os.OpenFile(location, os.O_CREATE | os.O_APPEND | os.O_WRONLY, 0644)
     pft.CheckError(err)
 
     for _, chunk := range file.local_chunks {
@@ -131,20 +79,21 @@ func MergeFile(file DownloadedFile) bool {
     }
     merged_file.Close()
 
-    hash := tornet.CalcHash("../tornet-files/test.pdf")
+    // original
+    hash := tornet.CalcHash("torrent-files/test.pdf")
     fmt.Println(hash)
+
+    // new one
     merged_hash := tornet.CalcHash(location)
     fmt.Println(merged_hash)
-
-    fmt.Println(deepCompare(location, "../tornet-files/test.pdf"))
 
     if bytes.Equal(merged_hash, file_hash) {
         log.Println("File reconstructed successfuly: ", location)
         return true
     } else {
         log.Println("The file was corrupt, and has been deleted.")
-        //err := os.Remove(location)
-        //pft.CheckError(err)
+        err := os.Remove(location)
+        pft.CheckError(err)
         return false
     }
 

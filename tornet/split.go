@@ -41,10 +41,19 @@ func SplitInChunks(file_path string, n_nodes int64) []Chunk {
     }
     log.Println("Number of chunks: ", n_chunks)
 
+    var overflow int64 = 0
     chunks := make([]Chunk, 0)
     for i := 0; int64(i) < n_chunks; i++ {
+
+        if(overflow > size){
+            chunk_size = chunk_size - 1
+        }
+
         new_chunk := createChunk("pft-files/_" + file_name + "/" + file_name + ".part" + strconv.Itoa(i), i, file, chunk_size)
         chunks = append(chunks, new_chunk)
+        overflow += chunk_size
+
+    overflow+= chunk_size
     }
     return chunks
 }
