@@ -1,71 +1,82 @@
 package p2p
 
 import (
-	"log"
-	"protocoldesign/pft"
-	"protocoldesign/tornet"
-	"os"
-	"bytes"
+    "log"
+    "protocoldesign/pft"
+    "protocoldesign/tornet"
+    "os"
+    "bytes"
 )
 
-//TODO receive the path to the torrent OR the torrent
-func MergeFile(Chunks []string) bool {
+func Test() {
+    torrent_file_name := "torrent-files/test.pdf.torrent"
+    torrent := tornet.Torrent{}
+    torrent.Read(torrent_file_name)
+    log.Println(torrent)
 
-	// Extract data
-	torrent_file_name := "torrent-files/test.pdf.torrent"
-	torrent_file := tornet.Torrent{}
-	torrent_file.Read(torrent_file_name)
-	FileHash := torrent_file.FileHash
+    file := DownloadedFile{
+        file_path: torrent.FilePath,
+        file_hash: torrent.FileHash,
+    }
 
-	location := "pft-files/" + torrent_file.FilePath
+    chunk1 := tornet.Chunk{
+        ChunkIndex: 0,
+        FilePath: "127.0.0.1_4466/pft-files/_test.pdf/test.pdf.part0",
+    }
+    chunk2 := tornet.Chunk{
+        ChunkIndex: 1,
+        FilePath: "127.0.0.1_4467/pft-files/_test.pdf/test.pdf.part1",
+    }
+    file.local_chunks = append(file.local_chunks, chunk1)
+    file.local_chunks = append(file.local_chunks, chunk2)
 
-	for _, Chunk := range Chunks {
+    MergeFile(file)
+}
 
-		//Open (if doesn't exists, create) file in append mode.
-		merged_file, err := os.OpenFile(location, os.O_CREATE|os.O_APPEND|os.O_WRONLY , 0744)
-		pft.CheckError(err)
-		defer merged_file.Close()
+func MergeFile(file DownloadedFile) bool {
+    file_hash := file.file_hash
+    location := "pft-files/" + file.file_path
 
-		// Checking if file exists and getting its data
-		chunk_info, err := os.Stat(Chunk)
-		if err != nil {
-			if os.IsNotExist(err) {
-				log.Fatal("File "+ Chunk +" does not exist.")
-				return false
-			}
-		}
+    // open (if doesn't exists, create) file in append mode.
+    merged_file, err := os.OpenFile(location, os.O_CREATE | os.O_APPEND | os.O_WRONLY, 0744)
+    pft.CheckError(err)
 
-		// Opening chunk
-		chunk_file, err := os.Open(Chunk)
-		pft.CheckError(err)
-		defer chunk_file.Close()
+    for _, chunk := range file.local_chunks {
+        // checking if file exists and getting its data
+        chunk_info, err := os.Stat(chunk.FilePath)
+        if err != nil {
+            if os.IsNotExist(err) {
+                log.Fatal("File " + chunk.FilePath + " does not exist.")
+                return false
+            }
+        }
 
-		log.Println("Extracting: " + chunk_info.Name())
+        // opening chunk
+        chunk_file, err := os.Open(chunk.FilePath)
+        pft.CheckError(err)
+        log.Println("Extracting: " + chunk.FilePath)
 
-		chunk_size := chunk_info.Size()
-		chunk_data := make([]byte, chunk_size)
+        chunk_size := chunk_info.Size()
+        chunk_data := make([]byte, chunk_size)
 
-		bytes_read, err := chunk_file.Read(chunk_data)
-		pft.CheckError(err)
+        bytes_read, err := chunk_file.Read(chunk_data)
+        pft.CheckError(err)
+        chunk_file.Close()
+        log.Printf("have read %d bytes\n", bytes_read)
 
-		log.Printf("Writing the following bytes: %d\n", bytes_read)
+        merged_file.Write(chunk_data)
+    }
+    merged_file.Close()
+    merged_hash := tornet.CalcHash(location)
 
-		merged_file.Write(chunk_data)
-		defer merged_file.Close()
-	}
-	Mergedhash := tornet.CalcHash(location)
-
-	if bytes.Equal(Mergedhash, FileHash) {
-
-		log.Println("File reconstructed successfuly", location)
-		return true
-
-	} else {
-
-		log.Println("The file was corrupt, and has been deleted.")
-		err := os.Remove(location)
-		pft.CheckError(err)
-		return false
-	}
+    if bytes.Equal(merged_hash, file_hash) {
+        log.Println("File reconstructed successfuly: ", location)
+        return true
+    } else {
+        log.Println("The file was corrupt, and has been deleted.")
+        //err := os.Remove(location)
+        //pft.CheckError(err)
+        return false
+    }
 
 }

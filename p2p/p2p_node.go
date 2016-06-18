@@ -18,6 +18,7 @@ import (
 
 type DownloadedFile struct {
     file_path    string
+    file_hash    []byte
     local_chunks []tornet.Chunk
 }
 
@@ -59,13 +60,10 @@ func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
     // TODO
 }
 
-func mergeFile(DownloadedFile) {
-
-}
-
 func runDownloader(torrent tornet.Torrent) {
     file := DownloadedFile{
         file_path: torrent.FilePath,
+        file_hash: torrent.FileHash,
     }
     for _, chunk := range torrent.Chunks {
         fmt.Printf("downloading chunk #%d with path %s\n", chunk.ChunkIndex, chunk.FilePath)
@@ -75,7 +73,7 @@ func runDownloader(torrent tornet.Torrent) {
 
         fmt.Println("saved chunk #", chunk.ChunkIndex)
     }
-    mergeFile(file)
+    MergeFile(file)
     fmt.Printf("Saved file %s on disk\n\n", file.file_path)
 }
 
