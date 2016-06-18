@@ -6,7 +6,6 @@ import (
     "os"
     "fmt"
     "flag"
-    "strconv"
     "time"
     "math/rand"
     "protocoldesign/p2p"

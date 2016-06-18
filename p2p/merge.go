@@ -68,6 +68,7 @@ func deepCompare(file1, file2 string) bool {
 }
 
 func Test() {
+    // important: put directories  127.0.0.1_4466 and 127.0.0.1_4467 to pft-files fot it to work
     torrent_file_name := "torrent-files/test.pdf.torrent"
     torrent := tornet.Torrent{}
     torrent.Read(torrent_file_name)
@@ -104,18 +105,19 @@ func MergeFile(file DownloadedFile) bool {
 
     for _, chunk := range file.local_chunks {
         // checking if file exists and getting its data
-        chunk_info, err := os.Stat(chunk.FilePath)
+        chunk_file_path := "pft-files/" + chunk.FilePath
+        chunk_info, err := os.Stat(chunk_file_path)
         if err != nil {
             if os.IsNotExist(err) {
-                log.Fatal("File " + chunk.FilePath + " does not exist.")
+                log.Fatal("File " + chunk_file_path + " does not exist.")
                 return false
             }
         }
 
         // opening chunk
-        chunk_file, err := os.Open(chunk.FilePath)
+        chunk_file, err := os.Open(chunk_file_path)
         pft.CheckError(err)
-        log.Println("Extracting: " + chunk.FilePath)
+        log.Println("Extracting: " + chunk_file_path)
 
         chunk_size := chunk_info.Size()
         chunk_data := make([]byte, chunk_size)
@@ -129,12 +131,12 @@ func MergeFile(file DownloadedFile) bool {
     }
     merged_file.Close()
 
-    hash := tornet.CalcHash("tornet-files/test.pdf")
+    hash := tornet.CalcHash("../tornet-files/test.pdf")
     fmt.Println(hash)
     merged_hash := tornet.CalcHash(location)
     fmt.Println(merged_hash)
 
-    fmt.Println(deepCompare(location, "tornet-files/test.pdf"))
+    fmt.Println(deepCompare(location, "../tornet-files/test.pdf"))
 
     if bytes.Equal(merged_hash, file_hash) {
         log.Println("File reconstructed successfuly: ", location)
