@@ -27,7 +27,9 @@ func runLocalServer(port int) {
     pft.ChangeDir(local_addr)
 
     peer := pft.MakePeer(local_addr, nil)
-    peer.Run()
+    for true {
+        peer.Run()
+    }
 }
 
 func downloadChunk(chunk tornet.Chunk) tornet.Chunk {
@@ -57,6 +59,10 @@ func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
     // TODO
 }
 
+func mergeFile(DownloadedFile) {
+
+}
+
 func runDownloader(torrent tornet.Torrent) {
     file := DownloadedFile{
         file_path: torrent.FilePath,
@@ -65,10 +71,12 @@ func runDownloader(torrent tornet.Torrent) {
         fmt.Printf("downloading chunk #%d with path %s\n", chunk.ChunkIndex, chunk.FilePath)
         local_chunk := downloadChunk(chunk)
         notifyTracker(torrent.TrackerIP, chunk)
-        append(file.local_chunks, local_chunk)
+        file.local_chunks = append(file.local_chunks, local_chunk)
 
         fmt.Println("saved chunk #", chunk.ChunkIndex)
     }
+    mergeFile(file)
+    fmt.Printf("Saved file %s on disk\n\n", file.file_path)
 }
 
 func main() {
@@ -84,20 +92,24 @@ func main() {
         fmt.Println("Too many command line parameters")
         os.Exit(1)
     }
-    torrent_file_name := flag.Args()[0]
-    torrent_file := tornet.Torrent{}
-    torrent_file.Read(torrent_file_name)
-    log.Println(torrent_file)
 
     runtime.GOMAXPROCS(runtime.NumCPU())
     var wg sync.WaitGroup
     wg.Add(2)
 
-    fmt.Println("Starting download / upload process")
+    fmt.Println("Starting upload routine")
     go runLocalServer(*port)
-    go runDownloader(torrent_file)
 
-    fmt.Println("waiting to finish...")
+    if len(flag.Args()) > 0 {
+        torrent_file_name := flag.Args()[0]
+        torrent_file := tornet.Torrent{}
+        torrent_file.Read(torrent_file_name)
+        log.Println(torrent_file)
+
+        fmt.Println("Starting download routine")
+        go runDownloader(torrent_file)
+    }
+
     wg.Wait()
     fmt.Println("\n...terminating")
 }
