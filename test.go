@@ -5,11 +5,12 @@ import (
     "protocoldesign/pft"
     "os"
     "fmt"
-    "runtime"
-    "sync"
-    "flag"
+    //"runtime"
+    //"sync"
+    //"flag"
     "strconv"
     "bufio"
+    "protocoldesign/p2p"
 )
 
 func runServer(port int){
@@ -51,22 +52,28 @@ func runClient(){
 }
 
 func main() {
-    port := flag.Int("p", 4455, "ownPublishPortArg")
-    flag.Parse()
+    //port := flag.Int("p", 4455, "ownPublishPortArg")
+    //flag.Parse()
+    //
+    //fmt.Println("Number of CPUs: ", runtime.NumCPU())
+    //runtime.GOMAXPROCS(runtime.NumCPU())
+    //
+    //var wg sync.WaitGroup
+    //wg.Add(2)
+    //
+    //fmt.Println("Starting Go Routines")
+    //
+    //go runServer(*port)
+    //go runClient()
+    //
+    //fmt.Println("Waiting to finish...")
+    //wg.Wait()
+    //
+    //fmt.Println("\n...terminating")
 
-    fmt.Println("Number of CPUs: ", runtime.NumCPU())
-    runtime.GOMAXPROCS(runtime.NumCPU())
+    var hash []byte
 
-    var wg sync.WaitGroup
-    wg.Add(2)
+    files :=[]string{"pft-files/_test.pdf/test.pdf.part0", "pft-files/_test.pdf/test.pdf.part1"}
 
-    fmt.Println("Starting Go Routines")
-
-    go runServer(*port)
-    go runClient()
-
-    fmt.Println("Waiting to finish...")
-    wg.Wait()
-
-    fmt.Println("\n...terminating")
+    p2p.MergeFile(files,hash)
 }
