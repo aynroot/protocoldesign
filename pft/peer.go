@@ -267,19 +267,27 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
     case CNTF:
         log.Println("received CNTF")
         log.Println("chunk is available on new node")
-        if(remote.cntf_state == OPEN){      //End communication after CNTF was returned
-            fmt.Println("now closed")
+
+        //End communication after CNTF was returned
+        if(remote.cntf_state == OPEN){
+            fmt.Println("received CNTF - ACK")
             remote.cntf_state = CLOSED
             return
         }
-        //err, size, hash := DecodeCntf(packet_buffer, packet_size)
-        //fmt.Println(size)
-        //fmt.Println(hash)
-        //if err == nil {
-        fmt.Print("sender_addr: ")
-        fmt.Println(sender_addr)
-        sender_addr.Port = 4468  //TODO: Port should not be fixed
-            this.conn.WriteToUDP(packet_buffer, sender_addr) //TODO: Change packet_buffer to EncodeCntf
+        err, info_byte, chunk_index, rid := DecodeCntf(packet_buffer, packet_size)
+        fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        fmt.Print("info_byte: ")
+        fmt.Println(info_byte)
+        fmt.Print("chunk_index: ")
+        fmt.Println(chunk_index)
+        fmt.Print("rid: ")
+        fmt.Println(rid)
+        if err == nil {
+
+        }
+
+
+        this.conn.WriteToUDP(EncodeCntf(0,"1234"), remote.addr)
         //}else{
             //TODO: Handle Error
         //}
@@ -313,7 +321,7 @@ func (this *Peer) CheckTimeouts() {
             client.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
         }
         if client.cntf_deadline.Before(now) && client.cntf_state != CLOSED {
-            this.conn.WriteToUDP(EncodeReq(client.download_rid), client.addr)
+            this.conn.WriteToUDP(EncodeCntf(client.cntf_chunk, client.cntf_rid), client.addr)
             log.Println("sent CNTF")
         }
     }

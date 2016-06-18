@@ -54,14 +54,7 @@ func main() {
         fmt.Println("Created *.torrent file: ", torrent_file_path)
     }
 
-    // TODO WTF IS THIS SHIT
-    // server mode, bind to given port
-    //local_addr1, err := net.ResolveUDPAddr("udp", "127.0.0.1:" + strconv.Itoa(4455))
-    //pft.CheckError(err)
-    //pft.ChangeDir(local_addr1)
-
-    //peer1 := pft.MakePeer(local_addr1, nil) // accept packets from any remote
-    //peer1.Run()
+    //Run Server to wait for incoming CNTF-Packets
     for true {
         peer.Run()
     }
