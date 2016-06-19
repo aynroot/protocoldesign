@@ -56,26 +56,24 @@ func downloadChunk(chunk tornet.Chunk) tornet.Chunk {
     return local_chunk
 }
 
-
-
-// TODO
-func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
-    //var tracker_port = 4455
+func notifyTracker(tracker_ip string, info_byte []byte, chunk tornet.Chunk) {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     pft.CheckError(err)
-    //pft.ChangeDir(local_addr)
 
-    server := fmt.Sprintf("%s:%d", "localhost", 4455)
+    server := fmt.Sprintf("%s:%d", "localhost", 4455)       //Please notice: Fixed Tracker Port 4455!
     server_addr, err := net.ResolveUDPAddr("udp", server)
     pft.CheckError(err)
 
-    fmt.Println(local_addr)
-    fmt.Println(server_addr)
-
     peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
-    fmt.Println(peer)
-    peer.SendNotification(chunk.FilePath, server_addr)
+    peer.SendNotification(chunk.FilePath, info_byte, server_addr)
     peer.Run()
+}
+
+func registerAtTracker(tracker_ip string, chunk tornet.Chunk) {
+    notifyTracker(tracker_ip, []byte{1}, chunk)
+}
+func unregisterAtTracker(tracker_ip string, chunk tornet.Chunk) {       //TODO: Call function when node is overloaded or file not available anymore
+    notifyTracker(tracker_ip, []byte{0}, chunk)
 }
 
 func RunDownloader(torrent tornet.Torrent) {
@@ -86,7 +84,7 @@ func RunDownloader(torrent tornet.Torrent) {
     for _, chunk := range torrent.Chunks {
         fmt.Printf("downloading chunk #%d with path %s\n", chunk.ChunkIndex, chunk.FilePath)
         local_chunk := downloadChunk(chunk)
-        notifyTracker(torrent.TrackerIP, chunk)
+        registerAtTracker(torrent.TrackerIP, chunk)
         file.local_chunks = append(file.local_chunks, local_chunk)
 
         fmt.Println("saved chunk #", chunk.ChunkIndex)

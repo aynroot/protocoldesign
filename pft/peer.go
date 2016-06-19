@@ -376,10 +376,10 @@ func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     log.Println("sending push for", rid)
 }
 
-func (this *Peer) SendNotification(rid string, remote_addr *net.UDPAddr) {
+func (this *Peer) SendNotification(rid string, info_byte []byte, remote_addr *net.UDPAddr) {
     remote := this.GetRemote(remote_addr)
     remote.cntf_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
-    remote.cntf_infoByte = []byte{1}        //Chunk is not also available on this node
+    remote.cntf_infoByte = info_byte
     remote.cntf_rid = rid
     remote.cntf_state = OPEN
     this.conn.WriteToUDP(EncodeCntf(rid, remote.cntf_infoByte), remote.addr)
