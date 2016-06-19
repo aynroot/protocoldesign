@@ -13,13 +13,12 @@ import (
 
 func CalcHash(file_path string) []byte {
     fmt.Println(file_path)
-    file, err := os.Open(file_path)         //TODO: file-path could not be opened
-
+    file, err := os.Open(file_path)
     pft.CheckError(err)
     defer file.Close()
 
     hasher := sha3.New256()
-    io.Copy(hasher, file) // TODO: extra pass, consider move consequently copy when you build chunks
+    io.Copy(hasher, file)
     return hasher.Sum(nil)
 }
 
