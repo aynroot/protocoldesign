@@ -21,6 +21,8 @@ func MergeFile(file DownloadedFile) bool {
 	location := "pft-files" + string(os.PathSeparator) + file.file_path //"pft-files\\" + file.file_path // /
 	fmt.Println(location)
 
+        err := os.Remove(location)
+        defer pft.CheckError(err)
 	// open (if doesn't exists, create) file in append mode.
 	merged_file, err := os.OpenFile(location, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	pft.CheckError(err)
@@ -57,7 +59,7 @@ func MergeFile(file DownloadedFile) bool {
 
 	hash := tornet.CalcHash(".." + string(os.PathSeparator) + "torrent-files" + string(os.PathSeparator) + "test.pdf")
 	fmt.Println(hash)
-	fmt.Println("open file here: 1")
+	fmt.Println("open file her  e: 1")
 	// new one
 	merged_hash := tornet.CalcHash(location)
 	fmt.Println("open file here: 2")
