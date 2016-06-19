@@ -74,7 +74,7 @@ func notifyTracker(tracker_ip string, chunk tornet.Chunk) {
 
     peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
     fmt.Println(peer)
-    peer.SendNotification(uint32(chunk.ChunkIndex), chunk.FilePath, server_addr)
+    peer.SendNotification(chunk.FilePath, server_addr)
     peer.Run()
 }
 

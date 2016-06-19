@@ -112,44 +112,22 @@ func DecodeReqAck(packet []byte, size int) (error, uint64, []byte) {
 	return nil, resource_size, packet[25:size]
 }
 
-func EncodeCntf(chunk_index uint32, chunk_rid string) []byte {
-	//TODO: use chunk index
-	//TODO: correct fields in package
-
+func EncodeCntf(chunk_rid string, info_byte []byte) []byte {
 	//16-Byte SHA
 	//1 Byte Type
 	//1 Info-Byte
-	//4 Byte Block-Index
-	//490 Chunk-Path
+	//494 Chunk-Path
 
-	//return nil, binary.BigEndian.Uint32(packet[17:21]), packet[21:size]
-
-	var package_content = append(ToBigEndian32(chunk_index),[]byte(chunk_rid)...)
-	return MakePacket(CNTF, append([]byte{1}, package_content...))
+	var package_content = []byte(chunk_rid)
+	return MakePacket(CNTF, append(info_byte, package_content...))
 }
 
-func DecodeCntf(packet []byte, size int) (error, uint32, uint32, []byte) {
-	//fmt.Println(packet)
-	//fmt.Println(size)
+func DecodeCntf(packet []byte, size int) (error, [] byte, string) {
 	if size <= 18 { // 17 byte header, 1 byte info byte
-		return errors.New("packet too short"), 0, 0, nil
+		return errors.New("packet too short"), []byte{0}, ""
 	}
-	//fmt.Println(packet[17:18])
-	fmt.Println("----------------------------------------------------------")
-	fmt.Println(packet[17:18])
-	var info_byte uint32  = 0
-	if (packet[17] != 0){
-		info_byte = 1
-	}
-	//binary.ReadUvarint(packet[17])
-	fmt.Println(info_byte)
-	fmt.Println(packet[18:22])
-	fmt.Println(binary.BigEndian.Uint32(packet[18:22]))
-
-
-	//TODO: Activate big endian: we had some issues with 0 in the array
-	//return nil, binary.BigEndian.Uint32(packet[17:18]), []byte{0, 0, 0, 0, 0}// packet[18:size]
-	return nil, info_byte,  binary.BigEndian.Uint32(packet[18:22]), packet[22:size]
-	//return nil, 0, packet[18:size]
+	//TODO: Check hash!?
+	fmt.Println(string(packet[22:size]))
+	return nil, packet[17:18], string(packet[18:size])
 }
 

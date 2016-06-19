@@ -38,7 +38,7 @@ type RemoteClient struct {
     cntf_deadline       time.Time
     cntf_state          int
     cntf_rid            string
-    cntf_chunk          uint32
+    cntf_infoByte       []byte
 }
 
 type Peer struct {
@@ -265,33 +265,26 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         this.conn.WriteToUDP(EncodeReq(remote.download_rid), sender_addr)
         log.Println("sent REQ")
     case CNTF:
-        log.Println("received CNTF")
-        log.Println("chunk is available on new node")
+        if (remote.cntf_infoByte[0] == 1 ){
+            //TODO: Add this node for this chunk from torrent file
+        }else if (remote.cntf_infoByte[0] == 0) {
+            //TODO: Remove this node for this chunk from torrent file
+        }
 
         //End communication after CNTF was returned
-        if(remote.cntf_state == OPEN){
-            fmt.Println("received CNTF - ACK")
+        if(remote.cntf_state == OPEN){          //Packet Reached Node
             remote.cntf_state = CLOSED
             return
+        }else {
+            //Package Reached Tornet
+            err, info_byte, rid := DecodeCntf(packet_buffer, packet_size)
+            log.Println("received CNTF - ACK " + rid)
+            if err == nil {
+                this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
+            } else {
+                //TODO: Handle Error
+            }
         }
-        err, info_byte, chunk_index, rid := DecodeCntf(packet_buffer, packet_size)
-        fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        fmt.Print("info_byte: ")
-        fmt.Println(info_byte)
-        fmt.Print("chunk_index: ")
-        fmt.Println(chunk_index)
-        fmt.Print("rid: ")
-        fmt.Println(rid)
-        if err == nil {
-
-        }
-
-
-        this.conn.WriteToUDP(EncodeCntf(0,"1234"), remote.addr)
-        //}else{
-            //TODO: Handle Error
-        //}
-
     default:
         log.Println("dropping packet with invalid type", packet_type)
     }
@@ -321,7 +314,7 @@ func (this *Peer) CheckTimeouts() {
             client.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
         }
         if client.cntf_deadline.Before(now) && client.cntf_state != CLOSED {
-            this.conn.WriteToUDP(EncodeCntf(client.cntf_chunk, client.cntf_rid), client.addr)
+            this.conn.WriteToUDP(EncodeCntf(client.cntf_rid, []byte{0}), client.addr)
             log.Println("sent CNTF")
         }
     }
@@ -383,16 +376,13 @@ func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     log.Println("sending push for", rid)
 }
 
-func (this *Peer) SendNotification(chunk_index uint32, rid string, remote_addr *net.UDPAddr) {
+func (this *Peer) SendNotification(rid string, remote_addr *net.UDPAddr) {
     remote := this.GetRemote(remote_addr)
     remote.cntf_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
-    remote.cntf_chunk = chunk_index
+    remote.cntf_infoByte = []byte{1}        //Chunk is not also available on this node
     remote.cntf_rid = rid
     remote.cntf_state = OPEN
-
-    fmt.Print("remote.addr ")
-    fmt.Println(remote.addr)
-    this.conn.WriteToUDP(EncodeCntf(chunk_index, rid), remote.addr) //TODO: Adapt integer
+    this.conn.WriteToUDP(EncodeCntf(rid, remote.cntf_infoByte), remote.addr)
     log.Println("sending push for", rid)
 }
 
