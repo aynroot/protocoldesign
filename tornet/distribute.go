@@ -34,8 +34,8 @@ func DistributeFile(peer pft.Peer, local_addr *net.UDPAddr, file_path string, no
     n_nodes := len(nodes_list)
 
     //TODO: Different \ and / in windows and other os
-    path_without_parent_dir := strings.SplitN(file_path, "/", 2)[1]       //TODO: Implement path for Windows and others
-    //path_without_parent_dir := strings.SplitN(file_path, "\\", 2)[1]
+    //path_without_parent_dir := strings.SplitN(file_path, "/", 2)[1]       //TODO: Implement path for Windows and others
+    path_without_parent_dir := strings.SplitN(file_path, string(os.PathSeparator), 2)[1]
 
     tornet_file := Torrent{
         TrackerIP: local_addr.String(),
