@@ -126,7 +126,6 @@ func DecodeCntf(packet []byte, size int) (error, [] byte, string) {
 	if size <= 18 { // 17 byte header, 1 byte info byte
 		return errors.New("packet too short"), []byte{0}, ""
 	}
-	//TODO: Check hash!?
 	fmt.Println(string(packet[22:size]))
 	return nil, packet[17:18], string(packet[18:size])
 }

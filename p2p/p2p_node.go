@@ -72,7 +72,7 @@ func notifyTracker(tracker_ip string, info_byte []byte, chunk tornet.Chunk) {
 func registerAtTracker(tracker_ip string, chunk tornet.Chunk) {
     notifyTracker(tracker_ip, []byte{1}, chunk)
 }
-func unregisterAtTracker(tracker_ip string, chunk tornet.Chunk) {       //TODO: Call function when node is overloaded or file not available anymore
+func unregisterAtTracker(tracker_ip string, chunk tornet.Chunk) {       //TODO: Call function when chunk is not available at a specific node anymore
     notifyTracker(tracker_ip, []byte{0}, chunk)
 }
 

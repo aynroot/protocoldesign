@@ -282,8 +282,6 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
                 }
                 this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
             }
-        } else {
-            //TODO: Handle Error
         }
     default:
         log.Println("dropping packet with invalid type", packet_type)
