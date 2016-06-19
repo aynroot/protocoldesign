@@ -18,7 +18,9 @@ type Torrent struct {
 }
 
 func CalcHash(file_path string) []byte {
-    file, err := os.Open(file_path)
+    fmt.Println(file_path)
+    file, err := os.Open(file_path)         //TODO: File-path could not be opened
+
     pft.CheckError(err)
     defer file.Close()
 
