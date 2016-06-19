@@ -112,21 +112,15 @@ func DecodeReqAck(packet []byte, size int) (error, uint64, []byte) {
 	return nil, resource_size, packet[25:size]
 }
 
-func EncodeCntf(chunk_rid string, info_byte []byte) []byte {
-	//16-Byte SHA
-	//1 Byte Type
-	//1 Info-Byte
-	//494 Chunk-Path
-
-	var package_content = []byte(chunk_rid)
-	return MakePacket(CNTF, append(info_byte, package_content...))
+func EncodeCntf(chunk_rid string, info_byte byte) []byte {
+	return MakePacket(CNTF, append([]byte{info_byte}, []byte(chunk_rid)...))
 }
 
-func DecodeCntf(packet []byte, size int) (error, [] byte, string) {
+func DecodeCntf(packet []byte, size int) (error, byte, string) {
 	if size <= 18 { // 17 byte header, 1 byte info byte
-		return errors.New("packet too short"), []byte{0}, ""
+		return errors.New("packet too short"), 0, ""
 	}
 	fmt.Println(string(packet[22:size]))
-	return nil, packet[17:18], string(packet[18:size])
+	return nil, packet[17], string(packet[18:size])
 }
 

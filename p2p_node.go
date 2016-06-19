@@ -7,10 +7,10 @@ import (
     "os"
     "runtime"
     "sync"
-    "protocoldesign/tornet"
     "log"
     "protocoldesign/p2p"
     "math/rand"
+    "protocoldesign/pft"
 )
 
 func main() {
@@ -36,12 +36,12 @@ func main() {
 
     if len(flag.Args()) > 0 {
         torrent_file_name := flag.Args()[0]
-        torrent_file := tornet.Torrent{}
+        torrent_file := pft.Torrent{}
         torrent_file.Read(torrent_file_name)
         log.Println(torrent_file)
 
         fmt.Println("Starting download routine")
-        go p2p.RunDownloader(torrent_file)
+        go p2p.RunDownloader(torrent_file, *port)
     }
 
     wg.Wait()

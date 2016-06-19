@@ -10,6 +10,7 @@ import (
     "bufio"
     "bytes"
     "path/filepath"
+    "strconv"
 )
 
 type InboundPacket struct {
@@ -35,10 +36,9 @@ type RemoteClient struct {
     push_rid             string
     push_deadline        time.Time
 
-    cntf_deadline       time.Time
-    cntf_state          int
-    cntf_rid            string
-    cntf_infoByte       []byte
+    cntf_deadline        time.Time
+    cntf_state           int
+    cntf_rid             string
 }
 
 type Peer struct {
@@ -46,6 +46,7 @@ type Peer struct {
     conn          *net.UDPConn
     read_chan     chan InboundPacket
     remotes       map[string]*RemoteClient
+    torrent_map   map[string]Torrent
 }
 
 func MakePeer(localAddr *net.UDPAddr, remoteAddr *net.UDPAddr) Peer {
@@ -58,6 +59,10 @@ func MakePeer(localAddr *net.UDPAddr, remoteAddr *net.UDPAddr) Peer {
         read_chan: make(chan InboundPacket),
         remotes: make(map[string]*RemoteClient),
     }
+}
+
+func (this *Peer) SetTorrentMap(torrent_map map[string]Torrent) {
+    this.torrent_map = torrent_map
 }
 
 func (this *Peer) GetRemote(remote_addr *net.UDPAddr) *RemoteClient {
@@ -251,7 +256,6 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
             this.HandleGet(remote, index)
         }
     case DATA:
-        //time.Sleep(time.Second * 2)
         err, index, data := DecodeData(packet_buffer, packet_size)
         if err == nil {
             this.HandleData(remote, index, data)
@@ -265,27 +269,56 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         this.conn.WriteToUDP(EncodeReq(remote.download_rid), sender_addr)
         log.Println("sent REQ")
     case CNTF:
-        err, info_byte, rid := DecodeCntf(packet_buffer, packet_size)
+        err, info_byte, chunk_rid := DecodeCntf(packet_buffer, packet_size)
         if err == nil {
-            //End communication after CNTF was returned
-            if(remote.cntf_state == OPEN){          //Packet Reached Node
-                log.Println("received CNTF - ACK " + rid)
+            log.Println("received CNTF - ACK " + chunk_rid)
+
+            // end communication after CNTF was returned
+            if (remote.cntf_state == OPEN) {
+                // packet reached the node
                 remote.cntf_state = CLOSED
-                return
-            }else {
-                //Package Reached Tornet
-                log.Println("received CNTF - ACK " + rid)
-                if (info_byte[0] == 1 ){
-                    //TODO: Add this node for this chunk from torrent file
-                }else if (info_byte[0] == 0) {
-                    //TODO: Remove this node for this chunk from torrent file
+            } else {
+                // packet reached tornet
+                id, file_path, sender_node := parseChunkRID(chunk_rid)
+                chunk := this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)]
+
+                if (info_byte == 1) {
+                    // add corresponding node to chunk holders
+                    chunk.Nodes = append(chunk.Nodes, sender_node)
+                    this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)] = chunk
+                    log.Println("added node from chunk. ", chunk)
+                } else if (info_byte == 0) {
+                    // remove corresponding node from chunk holders
+                    node_index := -1
+                    for i, node := range chunk.Nodes {
+                        if node == sender_node {
+                            node_index = i
+                            break
+                        }
+                    }
+                    if node_index != -1 {
+                        chunk.Nodes = append(chunk.Nodes[:node_index], chunk.Nodes[node_index + 1:]...)
+                        this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)] = chunk
+                    }
+                    log.Println("deleted node from chunk. ", chunk)
                 }
-                this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
+                this.conn.WriteToUDP(EncodeCntf(chunk_rid, info_byte), remote.addr)
             }
         }
     default:
         log.Println("dropping packet with invalid type", packet_type)
     }
+}
+
+func parseChunkRID(chunk_rid string) (int, string, string) {
+    path_parts := strings.Split(chunk_rid, ".")
+    index_str := path_parts[len(path_parts) - 1][len("part"):]
+    index, _ := strconv.Atoi(index_str)
+
+    file_path := strings.Join(path_parts[:len(path_parts) - 1], ".")
+    _, file_name := filepath.Split(file_path)
+    node_addr := strings.SplitN(file_path, "/", 2)
+    return index, file_name, node_addr[0]
 }
 
 func (this *Peer) CheckTimeouts() {
@@ -312,7 +345,7 @@ func (this *Peer) CheckTimeouts() {
             client.push_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
         }
         if client.cntf_deadline.Before(now) && client.cntf_state != CLOSED {
-            this.conn.WriteToUDP(EncodeCntf(client.cntf_rid, []byte{0}), client.addr)
+            this.conn.WriteToUDP(EncodeCntf(client.cntf_rid, 0), client.addr)
             log.Println("sent CNTF")
         }
     }
@@ -374,13 +407,12 @@ func (this *Peer) Upload(rid string, remote_addr *net.UDPAddr) {
     log.Println("sending push for", rid)
 }
 
-func (this *Peer) SendNotification(rid string, info_byte []byte, remote_addr *net.UDPAddr) {
+func (this *Peer) SendChunkNotification(rid string, info_byte byte, remote_addr *net.UDPAddr) {
     remote := this.GetRemote(remote_addr)
     remote.cntf_deadline = time.Now().Add(time.Second * DEADLINE_SECONDS)
-    remote.cntf_infoByte = info_byte
     remote.cntf_rid = rid
     remote.cntf_state = OPEN
-    this.conn.WriteToUDP(EncodeCntf(rid, remote.cntf_infoByte), remote.addr)
+    this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
     log.Println("sending push for", rid)
 }
 

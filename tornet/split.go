@@ -9,13 +9,9 @@ import (
     "golang.org/x/crypto/sha3"
 )
 
-type Chunk struct {
-    FilePath   string `json:"file_path"`
-    ChunkIndex uint64 `json:"chunk_index"`
-    Hash       []byte `json:"hash"`
-}
 
-func SplitInChunks(file_path string, n_nodes int64) []Chunk {
+
+func SplitInChunks(file_path string, n_nodes int64) []pft.Chunk {
     const MEGABYTE int64 = 1024 * 1024
 
     file, err := os.Open(file_path)
@@ -42,10 +38,10 @@ func SplitInChunks(file_path string, n_nodes int64) []Chunk {
     log.Println("Number of chunks: ", n_chunks)
 
     var overflow int64 = 0
-    chunks := make([]Chunk, 0)
+    chunks := make([]pft.Chunk, 0)
     for i := 0; int64(i) < n_chunks; i++ {
 
-        if(overflow > size){
+        if (overflow > size) {
             chunk_size = chunk_size - 1
         }
 
@@ -53,12 +49,12 @@ func SplitInChunks(file_path string, n_nodes int64) []Chunk {
         chunks = append(chunks, new_chunk)
         overflow += chunk_size
 
-    overflow+= chunk_size
+        overflow += chunk_size
     }
     return chunks
 }
 
-func createChunk(location string, index int, file *os.File, size int64) Chunk {
+func createChunk(location string, index int, file *os.File, size int64) pft.Chunk {
     chunk_data := make([]byte, size)
     bytes_read, err := file.Read(chunk_data)
     pft.CheckError(err)
@@ -72,7 +68,7 @@ func createChunk(location string, index int, file *os.File, size int64) Chunk {
     new_file.Close()
 
     hash := sha3.Sum256(chunk_data)
-    chunk := Chunk{
+    chunk := pft.Chunk{
         ChunkIndex: uint64(index),
         FilePath: location[len("pft-files/"):],
         Hash: hash[:],

@@ -3,10 +3,10 @@ package p2p
 import (
     "net"
     "protocoldesign/pft"
-    "protocoldesign/tornet"
     "fmt"
     "strconv"
-    "strings"
+    "sort"
+    "math/rand"
 )
 
 func GetChunksFromTracker(port int, tracker_addr *net.UDPAddr){
@@ -33,22 +33,21 @@ func RunLocalServer(port int) {
     }
 }
 
-func downloadChunk(chunk tornet.Chunk) tornet.Chunk {
-    path_parts := strings.SplitN(chunk.FilePath, "/", 2)
-    server_node := path_parts[0]
-    file_name := path_parts[1]
+func downloadChunk(chunk pft.Chunk) pft.Chunk {
+    file_name := chunk.FilePath
 
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     pft.CheckError(err)
 
-    server_addr, err := net.ResolveUDPAddr("udp", server_node)
+    random_node := chunk.Nodes[rand.Intn(len(chunk.Nodes))]
+    server_addr, err := net.ResolveUDPAddr("udp", random_node)
     pft.CheckError(err)
 
     peer := pft.MakePeer(local_addr, server_addr)
     peer.Download("file:" + file_name, server_addr)
     peer.Run()
 
-    local_chunk := tornet.Chunk{
+    local_chunk := pft.Chunk{
         FilePath: file_name,
         ChunkIndex: chunk.ChunkIndex,
         Hash: chunk.Hash,
@@ -56,35 +55,47 @@ func downloadChunk(chunk tornet.Chunk) tornet.Chunk {
     return local_chunk
 }
 
-func notifyTracker(tracker_ip string, info_byte []byte, chunk tornet.Chunk) {
+func notifyTracker(tracker_ip string, info_byte byte, chunk_rid string) {
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     pft.CheckError(err)
 
-    server := fmt.Sprintf("%s:%d", "localhost", 4455)       //Please notice: Fixed Tracker Port 4455!
-    server_addr, err := net.ResolveUDPAddr("udp", server)
+    server_addr, err := net.ResolveUDPAddr("udp", tracker_ip)
     pft.CheckError(err)
 
-    peer := pft.MakePeer(local_addr, server_addr) // accept only packets from server_addr
-    peer.SendNotification(chunk.FilePath, info_byte, server_addr)
+    peer := pft.MakePeer(local_addr, server_addr)
+    peer.SendChunkNotification(chunk_rid, info_byte, server_addr)
     peer.Run()
 }
 
-func registerAtTracker(tracker_ip string, chunk tornet.Chunk) {
-    notifyTracker(tracker_ip, []byte{1}, chunk)
-}
-func unregisterAtTracker(tracker_ip string, chunk tornet.Chunk) {       //TODO: Call function when chunk is not available at a specific node anymore
-    notifyTracker(tracker_ip, []byte{0}, chunk)
+func registerAtTracker(tracker_ip string, chunk_rid string) {
+    notifyTracker(tracker_ip, 1, chunk_rid)
 }
 
-func RunDownloader(torrent tornet.Torrent) {
+func unregisterAtTracker(tracker_ip string, chunk_rid string) {       //TODO: Call function when chunk is not available at a specific node anymore
+    notifyTracker(tracker_ip, 0, chunk_rid)
+}
+
+func RunDownloader(torrent pft.Torrent, port int) {
     file := DownloadedFile{
         file_path: torrent.FilePath,
         file_hash: torrent.FileHash,
     }
-    for _, chunk := range torrent.Chunks {
+
+    // iterate in order of chunk indices
+    var indices []int
+    for index_str := range torrent.ChunksMap {
+        index_int, _ := strconv.Atoi(index_str)
+        indices = append(indices, index_int)
+    }
+    sort.Ints(indices)
+    for _, index := range indices {
+        chunk := torrent.ChunksMap[strconv.Itoa(index)]
+
         fmt.Printf("downloading chunk #%d with path %s\n", chunk.ChunkIndex, chunk.FilePath)
         local_chunk := downloadChunk(chunk)
-        registerAtTracker(torrent.TrackerIP, chunk)
+
+        chunk_rid := "127.0.0.1:" + strconv.Itoa(port) + "/" + chunk.FilePath
+        registerAtTracker(torrent.TrackerIP, chunk_rid)
         file.local_chunks = append(file.local_chunks, local_chunk)
 
         fmt.Println("saved chunk #", chunk.ChunkIndex)

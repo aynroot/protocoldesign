@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"net"
 	"math/rand"
+	"encoding/json"
+	"io/ioutil"
 )
 
 const (
@@ -99,3 +101,35 @@ func ChangeDir(local_addr *net.UDPAddr) {
 	fmt.Println("current dir is: " + dir)
 }
 
+type Chunk struct {
+	FilePath   string `json:"file_path"`
+	ChunkIndex uint64 `json:"chunk_index"`
+	Hash       []byte `json:"hash"`
+	Nodes      []string `json:"nodes"`
+}
+
+type Torrent struct {
+	TrackerIP string `json:"tracker_ip"`
+	FilePath  string `json:"file_path"`
+	FileHash  []byte `json:"file_hash"`
+	ChunksMap map[string]Chunk `json:"chunks_map"` // ket is chunk index (int as string)
+}
+
+func (this *Torrent) Write(parent_dir string) string {
+	data, err := json.Marshal(this)
+	CheckError(err)
+
+	file_path := filepath.Join(parent_dir, this.FilePath + ".torrent")
+	os.MkdirAll(filepath.Dir(file_path), 0755)
+	err = ioutil.WriteFile(file_path, data, 0755)
+	CheckError(err)
+	return file_path
+}
+
+func (this *Torrent) Read(file_path string) {
+	data, err := ioutil.ReadFile(file_path)
+	CheckError(err)
+
+	err = json.Unmarshal(data, this)
+	CheckError(err)
+}
