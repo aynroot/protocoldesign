@@ -265,25 +265,25 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
         this.conn.WriteToUDP(EncodeReq(remote.download_rid), sender_addr)
         log.Println("sent REQ")
     case CNTF:
-        if (remote.cntf_infoByte[0] == 1 ){
-            //TODO: Add this node for this chunk from torrent file
-        }else if (remote.cntf_infoByte[0] == 0) {
-            //TODO: Remove this node for this chunk from torrent file
-        }
-
-        //End communication after CNTF was returned
-        if(remote.cntf_state == OPEN){          //Packet Reached Node
-            remote.cntf_state = CLOSED
-            return
-        }else {
-            //Package Reached Tornet
-            err, info_byte, rid := DecodeCntf(packet_buffer, packet_size)
-            log.Println("received CNTF - ACK " + rid)
-            if err == nil {
+        err, info_byte, rid := DecodeCntf(packet_buffer, packet_size)
+        if err == nil {
+            //End communication after CNTF was returned
+            if(remote.cntf_state == OPEN){          //Packet Reached Node
+                log.Println("received CNTF - ACK " + rid)
+                remote.cntf_state = CLOSED
+                return
+            }else {
+                //Package Reached Tornet
+                log.Println("received CNTF - ACK " + rid)
+                if (info_byte[0] == 1 ){
+                    //TODO: Add this node for this chunk from torrent file
+                }else if (info_byte[0] == 0) {
+                    //TODO: Remove this node for this chunk from torrent file
+                }
                 this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
-            } else {
-                //TODO: Handle Error
             }
+        } else {
+            //TODO: Handle Error
         }
     default:
         log.Println("dropping packet with invalid type", packet_type)
