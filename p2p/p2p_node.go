@@ -7,6 +7,10 @@ import (
     "strconv"
     "sort"
     "math/rand"
+    "os"
+    "protocoldesign/tornet"
+    "bytes"
+    "log"
 )
 
 func GetChunksFromTracker(port int, tracker_addr *net.UDPAddr){
@@ -34,8 +38,6 @@ func RunLocalServer(port int) {
 }
 
 func downloadChunk(chunk pft.Chunk) pft.Chunk {
-    file_name := chunk.FilePath
-
     local_addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
     pft.CheckError(err)
 
@@ -44,11 +46,11 @@ func downloadChunk(chunk pft.Chunk) pft.Chunk {
     pft.CheckError(err)
 
     peer := pft.MakePeer(local_addr, server_addr)
-    peer.Download("file:" + file_name, server_addr)
+    peer.Download("file:" + chunk.FilePath, server_addr)
     peer.Run()
 
     local_chunk := pft.Chunk{
-        FilePath: file_name,
+        FilePath: chunk.FilePath,
         ChunkIndex: chunk.ChunkIndex,
         Hash: chunk.Hash,
     }
@@ -92,7 +94,18 @@ func RunDownloader(torrent pft.Torrent, port int) {
         chunk := torrent.ChunksMap[strconv.Itoa(index)]
 
         fmt.Printf("downloading chunk #%d with path %s\n", chunk.ChunkIndex, chunk.FilePath)
-        local_chunk := downloadChunk(chunk)
+
+        var local_chunk pft.Chunk;
+        if _, err := os.Stat("pft-files/" + chunk.FilePath); !os.IsNotExist(err) {
+            if bytes.Equal(tornet.CalcHash("pft-files/" + chunk.FilePath), chunk.Hash) {
+                log.Println("chunk already exists")
+                local_chunk = chunk
+            } else {
+                local_chunk = downloadChunk(chunk)
+            }
+        } else {
+            local_chunk = downloadChunk(chunk)
+        }
 
         chunk_rid := "127.0.0.1:" + strconv.Itoa(port) + "/" + chunk.FilePath
         registerAtTracker(torrent.TrackerIP, chunk_rid)

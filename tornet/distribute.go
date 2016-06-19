@@ -12,7 +12,6 @@ import (
 )
 
 func CalcHash(file_path string) []byte {
-    fmt.Println(file_path)
     file, err := os.Open(file_path)
     pft.CheckError(err)
     defer file.Close()

@@ -2,7 +2,6 @@ package p2p
 
 import (
     "bytes"
-    "fmt"
     "log"
     "os"
     "protocoldesign/pft"
@@ -19,7 +18,7 @@ func MergeFile(file DownloadedFile) bool {
     file_hash := file.file_hash
 
     location := "pft-files" + string(os.PathSeparator) + file.file_path
-    fmt.Println(location)
+    log.Println("merging: ", location)
 
     err := os.Remove(location) // err != nil if location doesn't exist
 

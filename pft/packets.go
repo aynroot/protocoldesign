@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"golang.org/x/crypto/sha3"
-	"fmt"
 )
 
 // calculates hash and concatenates packet to single []byte
@@ -119,7 +118,6 @@ func DecodeCntf(packet []byte, size int) (error, byte, string) {
 	if size <= 18 { // 17 byte header, 1 byte info byte
 		return errors.New("packet too short"), 0, ""
 	}
-	fmt.Println(string(packet[22:size]))
 	return nil, packet[17], string(packet[18:size])
 }
 

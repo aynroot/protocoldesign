@@ -413,7 +413,7 @@ func (this *Peer) SendChunkNotification(rid string, info_byte byte, remote_addr 
     remote.cntf_rid = rid
     remote.cntf_state = OPEN
     this.conn.WriteToUDP(EncodeCntf(rid, info_byte), remote.addr)
-    log.Println("sending push for", rid)
+    log.Println("sent CNTF for", rid)
 }
 
 func printFileList() {
