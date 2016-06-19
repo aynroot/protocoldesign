@@ -28,22 +28,10 @@ func saveTorrentMap(torrent_map map[string]pft.Torrent) {
 func initTorrentMap() map[string]pft.Torrent {
     torrent_map := make(map[string]pft.Torrent)
 
-    //data, err := ioutil.ReadFile("tornet.json")
-    //pft.CheckError(err)
-    //err = json.Unmarshal(data, torrent_map)
-    //pft.CheckError(err)
-
-    t := pft.Torrent{}
-    t.Read("torrent-files/uno.txt.torrent")
-    torrent_map["uno.txt"] = t
-
-    t = pft.Torrent{}
-    t.Read("torrent-files/test.pdf.torrent")
-    torrent_map["test.pdf"] = t
-
-    t = pft.Torrent{}
-    t.Read("torrent-files/cb1d_20160421_intro2_structure.pdf.torrent")
-    torrent_map["cb1d_20160421_intro2_structure.pdf"] = t
+    data, err := ioutil.ReadFile("tornet.json")
+    pft.CheckError(err)
+    err = json.Unmarshal(data, &torrent_map)
+    pft.CheckError(err)
 
     return torrent_map
 }
