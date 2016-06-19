@@ -283,19 +283,18 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
                 chunk := this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)]
 
                 if (info_byte == 1) {
-                    // add corresponding node to chunk holders
-                    chunk.Nodes = append(chunk.Nodes, sender_node)
-                    this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)] = chunk
-                    log.Println("added node from chunk. ", chunk)
+                    // add corresponding node to chunk holders if it's not yet there
+                    node_index := findNode(chunk.Nodes, sender_node)
+                    if node_index == -1 {
+                        chunk.Nodes = append(chunk.Nodes, sender_node)
+                        this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)] = chunk
+                        log.Println("added node to chunk")
+                    } else {
+                        log.Println("chunk is already registered at the node")
+                    }
                 } else if (info_byte == 0) {
                     // remove corresponding node from chunk holders
-                    node_index := -1
-                    for i, node := range chunk.Nodes {
-                        if node == sender_node {
-                            node_index = i
-                            break
-                        }
-                    }
+                    node_index := findNode(chunk.Nodes, sender_node)
                     if node_index != -1 {
                         chunk.Nodes = append(chunk.Nodes[:node_index], chunk.Nodes[node_index + 1:]...)
                         this.torrent_map[file_path].ChunksMap[strconv.Itoa(id)] = chunk
@@ -308,6 +307,17 @@ func (this *Peer) HandlePacket(sender_addr *net.UDPAddr, packet_buffer []byte, p
     default:
         log.Println("dropping packet with invalid type", packet_type)
     }
+}
+
+func findNode(nodes []string, target string) int {
+    node_index := -1
+    for i, node := range nodes {
+        if node == target {
+            node_index = i
+            break
+        }
+    }
+    return node_index
 }
 
 func parseChunkRID(chunk_rid string) (int, string, string) {
