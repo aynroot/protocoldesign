@@ -101,6 +101,7 @@ func main() {
         // torrent map already exists
         torrent_map = initTorrentMap()
     }
+    saveTorrentMap(torrent_map)
 
     // wait for incoming CNTF-Packets
     peer.SetTorrentMap(torrent_map)
