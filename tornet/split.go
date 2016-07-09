@@ -58,14 +58,15 @@ func createChunk(location string, index int, file *os.File, size int64) pft.Chun
     chunk_data := make([]byte, size)
     bytes_read, err := file.Read(chunk_data)
     pft.CheckError(err)
-    log.Printf("Number of bytes read: %d\n", bytes_read)
-    log.Printf("Wrote to file: %s\n", location)
 
     new_file, err := os.Create(location)
     pft.CheckError(err)
 
     new_file.Write(chunk_data)
     new_file.Close()
+
+    log.Printf("Number of bytes read: %d\n", bytes_read)
+    log.Printf("Wrote to file: %s\n", location)
 
     hash := sha3.Sum256(chunk_data)
     chunk := pft.Chunk{

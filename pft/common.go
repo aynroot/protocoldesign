@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"encoding/json"
 	"io/ioutil"
+	"runtime/debug"
 )
 
 const (
@@ -38,6 +39,7 @@ const DEADLINE_SECONDS = 2
 func CheckError(err error) {
     if err != nil {
         fmt.Println("Error: ", err)
+		debug.PrintStack()
         os.Exit(1)
     }
 }
