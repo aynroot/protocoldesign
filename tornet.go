@@ -13,6 +13,7 @@ import (
     "io/ioutil"
     "log"
     "strings"
+    "runtime"
 )
 
 func saveTorrentMap(torrent_map map[string]pft.Torrent) {
@@ -22,7 +23,7 @@ func saveTorrentMap(torrent_map map[string]pft.Torrent) {
     err = ioutil.WriteFile("tornet.json", data, 0755)
     pft.CheckError(err)
 
-    log.Println("torrent map is saved")
+    log.Println("> torrent map is saved")
 }
 
 func initTorrentMap() map[string]pft.Torrent {
@@ -103,10 +104,50 @@ func main() {
     }
     saveTorrentMap(torrent_map)
 
-    // wait for incoming CNTF-Packets
+    // simulate incoming CNTF-Packets
+    id := 0
+
+    hash := torrent_map["cb1d_20160421_intro2_structure.pdf"].FileHash
+    var senders []string;
+    for i := 0; i < 10; i++ {
+        senders = append(senders, "111.222.333." + strconv.Itoa(i))
+    }
+
     peer.SetTorrentMap(torrent_map)
     for true {
-        peer.Run()
-        saveTorrentMap(torrent_map)
+        file_path := "foo/bar/some/file/name." + strconv.Itoa(id)
+
+        chunkMap := make(map[string]pft.Chunk)
+        for chunk_id := 0; chunk_id < 50; chunk_id++ {
+            chunk_path := "_cb1d_20160421_intro2_structure/_cb1d_20160421_intro2_structure.pdf.part" + strconv.Itoa(chunk_id)
+
+            chunk := pft.Chunk{
+                ChunkIndex: uint64(chunk_id),
+                FilePath: chunk_path,
+                Hash: hash,
+                Nodes: senders,
+            }
+            chunkMap[strconv.Itoa(chunk_id)] = chunk
+        }
+
+        t := torrent_map[file_path]
+        t.ChunksMap = chunkMap
+        t.FileHash = hash
+        torrent_map[file_path] = t
+
+        if (id % 100 == 0) {
+            saveTorrentMap(torrent_map)
+        }
+
+        var mem runtime.MemStats
+        runtime.ReadMemStats(&mem)
+        log.Println("File:", id)
+        log.Println("HeapAlloc:\t", mem.HeapAlloc)
+        log.Println("HeapSys:\t", mem.HeapSys)
+        log.Println("HeapInUse:\t", mem.HeapInuse)
+        log.Println("HeapIdle:\t", mem.HeapIdle)
+        log.Println("==============")
+
+        id += 1
     }
 }
