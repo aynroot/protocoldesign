@@ -9,6 +9,8 @@ import (
     "io"
     "strings"
     "strconv"
+    "time"
+    "log"
 )
 
 func CalcHash(file_path string) []byte {
@@ -22,6 +24,10 @@ func CalcHash(file_path string) []byte {
 }
 
 func DistributeFile(peer pft.Peer, local_addr *net.UDPAddr, file_path string, nodes_list []string) pft.Torrent {
+
+    // Benchmarking starts (Timer)
+    start := time.Now()
+
     chunks := SplitInChunks(file_path, int64(len(nodes_list)))
     n_nodes := len(nodes_list)
 
@@ -43,6 +49,9 @@ func DistributeFile(peer pft.Peer, local_addr *net.UDPAddr, file_path string, no
 
         peer.Upload("file:" + chunks[chunk_index].FilePath, node_addr)
         peer.Run()
+
+        elapsed := time.Since(start)
+        log.Printf("Sending Chunk  number %d took : %s", chunk_index, elapsed)
 
         chunks[chunk_index].Nodes = []string{node}
         tornet_file.ChunksMap[strconv.Itoa(int(chunks[chunk_index].ChunkIndex))] = chunks[chunk_index]

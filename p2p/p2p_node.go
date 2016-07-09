@@ -11,6 +11,7 @@ import (
     "protocoldesign/tornet"
     "bytes"
     "log"
+    "time"
 )
 
 func GetChunksFromTracker(port int, tracker_addr *net.UDPAddr){
@@ -21,7 +22,15 @@ func GetChunksFromTracker(port int, tracker_addr *net.UDPAddr){
     // continuously accept all chunks that tracker tries to push
     peer := pft.MakePeer(local_addr, tracker_addr)
     for true {
+
+        // Benchmarking starts to track download time.
+        start := time.Now()
+
         peer.Run()
+
+        elapsed := time.Since(start)
+        log.Printf("Download took : %s", elapsed)
+
         fmt.Println("Chunk is received")
     }
 }

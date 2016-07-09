@@ -5,7 +5,7 @@ import (
     "protocoldesign/pft"
     "log"
     "strconv"
-    "math"
+    //"math"
     "golang.org/x/crypto/sha3"
 )
 
@@ -26,8 +26,17 @@ func SplitInChunks(file_path string, n_nodes int64) []pft.Chunk {
     log.Println("File: ", file_path)
 
     size := file_info.Size()
-    chunk_size := int64(math.Ceil(float64(size) / float64(n_nodes)))
-    chunk_size = pft.Min(pft.Max(1 * MEGABYTE, chunk_size), 100 * MEGABYTE)
+
+    // Dynamic chunk sizes.
+    //chunk_size := int64(math.Ceil(float64(size) / float64(n_nodes)))
+    //chunk_size = pft.Min(pft.Max(1 * MEGABYTE, chunk_size), 100 * MEGABYTE)
+
+     //Static Chunk Size 20MB
+    chunk_size := 20 * MEGABYTE
+
+    //// Static Chunk Size 20MB
+    //chunk_size := 50 * MEGABYTE
+
     log.Println("File size (bytes): ", size)
     log.Printf("Chunk size: %d (%.2f Mb)\n", chunk_size, float64(chunk_size) / float64(MEGABYTE))
 
@@ -37,19 +46,19 @@ func SplitInChunks(file_path string, n_nodes int64) []pft.Chunk {
     }
     log.Println("Number of chunks: ", n_chunks)
 
-    var overflow int64 = 0
     chunks := make([]pft.Chunk, 0)
     for i := 0; int64(i) < n_chunks; i++ {
 
-        if (overflow > size) {
-            chunk_size = chunk_size - 1
+        var new_chunk pft.Chunk
+
+        if ((int64(i) + 1) == n_chunks) {
+            final_chunk_size := size - (int64(i) * chunk_size)
+            new_chunk = createChunk("pft-files/_" + file_name + "/" + file_name + ".part" + strconv.Itoa(i), i, file, final_chunk_size)
+        }else {
+            new_chunk = createChunk("pft-files/_" + file_name + "/" + file_name + ".part" + strconv.Itoa(i), i, file, chunk_size)
         }
 
-        new_chunk := createChunk("pft-files/_" + file_name + "/" + file_name + ".part" + strconv.Itoa(i), i, file, chunk_size)
         chunks = append(chunks, new_chunk)
-        overflow += chunk_size
-
-        overflow += chunk_size
     }
     return chunks
 }

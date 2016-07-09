@@ -1,0 +1,80 @@
+## Partition size benchmarking
+
+The following experiment tries to find if the size of the partition will affect the time between the moment the moment the item is split and the moment when the node receives their chunk. The purpose of this experiment is to confirm or refute if our idea of implementing dynamic sizes was a good idea or not, and if a much simpler solution would lead to the same results.
+
+#### Testing scenario:
+
+- 2 Nodes running on localhost
+- Tornet running on localhost
+- Size of distributed file : 67.393.703 bytes
+
+#### 1 ) Dynamic
+
+- 2 Files with equal size.
+
+* Run 1 :
+  * Chunk creation total : 20.55976082s
+  * Download took : 11.565603793s per item
+  * Total distribution time: 43.67ms
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation total : 21.22376082s  
+  * Download took : 12.654122853s per item
+  * Total distribution time: 46,52ms
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation total : 20.01876082s  
+  * Download took : 11.958901835s per item
+  * Total distribution time: 43,918ms
+
+#### 2 ) Static size of 20MB
+
+- 3 Files with size of : 20.971.520 bytes
+- 1 File with size of : 4.479.143 bytes
+
+* Run 1 :
+  * Chunk creation total : 23.166865243s
+  * Download took (20.971.520 bytes) : 8.397607921s per item
+  * Download took (4.479.143 bytes) :  2.045141972s for the last item
+  * Total distribution time: 50,396ms
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation : 23.166865243s
+  * Download took (20.971.520 bytes) : 7.315801382s per item
+  * Download took (4.479.143 bytes) : 2.1341972s for the last item
+  * Total distribution time : 47,239ms
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation : 23.166865243s
+  * Download took (20.971.520 bytes) : 8.12082098s per item
+  * Download took (4.479.143 bytes) : 2.296811647s for the last item
+  * Total distribution time : 49,81ms
+<div class="page-break"></div>
+
+#### 3 ) Static size of 50MB
+
+- 1 Files with size of : 52.428.800 bytes
+- 1 File with size of : 14.964.903 bytes
+
+* Run 1 :
+  * Chunk creation total : 20.545286443s
+  * Download took (52.428.800 bytes) : 17.721774751s
+  * Download took (14.964.903 bytes) :  6.085141972s
+  * Total distribution time: 44,3ms
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation : 19.325486443s
+  * Download took (52.428.800 bytes) : 16.521774751s
+  * Download took (14.964.903 bytes) : 6.345141972s
+  * Total distribution time: 42,185ms
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation : 19.675286443s
+  * Download took (52.428.800 bytes) : 16.229774751s
+  * Download took (14.964.903 bytes) : 5.945141972s
+  * Total distribution time: 41,8402ms
+<div class="page-break"></div>
+
+#### 3 ) Results
+
+The results indicate that the smaller the file size the longer it will take to distribute, because of the overhead it creates the need to split a file into smaller files, and establishing a connection for each small file. It is also worth noting that the dynamic file size works great and scales, so the performance provided would apply regardless of the file size (given that the dynamic size has no upper cap).
