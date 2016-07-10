@@ -27,5 +27,6 @@ func main() {
 
     tracker_addr, err := net.ResolveUDPAddr("udp", *tracker)
     pft.CheckError(err)
+
     p2p.GetChunksFromTracker(*port, tracker_addr)
 }

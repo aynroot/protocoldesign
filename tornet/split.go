@@ -5,7 +5,6 @@ import (
     "protocoldesign/pft"
     "log"
     "strconv"
-    //"math"
     "golang.org/x/crypto/sha3"
 )
 
@@ -32,10 +31,10 @@ func SplitInChunks(file_path string, n_nodes int64) []pft.Chunk {
     //chunk_size = pft.Min(pft.Max(1 * MEGABYTE, chunk_size), 100 * MEGABYTE)
 
      //Static Chunk Size 20MB
-    chunk_size := 20 * MEGABYTE
+    //chunk_size := 20 * MEGABYTE
 
     //// Static Chunk Size 20MB
-    //chunk_size := 50 * MEGABYTE
+    chunk_size := 50 * MEGABYTE
 
     log.Println("File size (bytes): ", size)
     log.Printf("Chunk size: %d (%.2f Mb)\n", chunk_size, float64(chunk_size) / float64(MEGABYTE))

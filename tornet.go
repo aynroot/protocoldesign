@@ -13,6 +13,7 @@ import (
     "io/ioutil"
     "log"
     "strings"
+    "time"
 )
 
 func saveTorrentMap(torrent_map map[string]pft.Torrent) {
@@ -96,7 +97,14 @@ func main() {
         fmt.Println("Files list: ", files_list)
         fmt.Println("Nodes list: ", nodes_list)
 
+        // Benchmarking starts (Timer)
+        start := time.Now()
+
         torrent_map = distributeFiles(files_list, nodes_list, peer, local_addr)
+
+        // End of timer
+        elapsed := time.Since(start)
+        log.Printf("Sending Chunks took : %s", elapsed)
     } else {
         // torrent map already exists
         torrent_map = initTorrentMap()

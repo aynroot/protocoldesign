@@ -18,12 +18,12 @@ The following experiment tries to find if the size of the partition will affect 
   * Total distribution time: 43.67ms
 <div class="page-break"></div>
 * Run 2 :
-  * Chunk creation total : 21.22376082s  
+  * Chunk creation total : 21.22376082s
   * Download took : 12.654122853s per item
   * Total distribution time: 46,52ms
 <div class="page-break"></div>
 * Run 3 :
-  * Chunk creation total : 20.01876082s  
+  * Chunk creation total : 20.01876082s
   * Download took : 11.958901835s per item
   * Total distribution time: 43,918ms
 
@@ -74,6 +74,72 @@ The following experiment tries to find if the size of the partition will affect 
   * Download took (14.964.903 bytes) : 5.945141972s
   * Total distribution time: 41,8402ms
 <div class="page-break"></div>
+
+#### Testing scenario 2:
+
+- 2 Nodes running on localhost
+- Tornet running on localhost
+- Size of distributed file : 195.939.948 bytes
+
+#### 1 ) Dynamic
+
+- 2 Files with equal size.
+
+* Run 1 :
+  * Chunk creation total : 1m 5.565582544s
+  * Download took : 36.219047529s per item
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation total : 1m 6.167582544s
+  * Download took : 34.649123298s per item
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation total : 1m 5.96582533s
+  * Download took : 36.654898792s per item
+
+#### 2 ) Static size of 20MB
+
+- 9 Files with size of : 20.971.520 bytes
+- 1 File with size of : 7.196.268 bytes
+
+* Run 1 :
+  * Chunk creation total : 1m 6.960888803s
+  * Download took (20.971.520 bytes) : 15.646196939s per item
+  * Download took (7.196.268 bytes) :  3.321738837s for the last item
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation total : 1m 6.960888803s
+  * Download took (20.971.520 bytes) : 17.568196939s per item
+  * Download took (7.196.268 bytes) :  3.654897783s for the last item
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation total : 1m 6.960888803s
+  * Download took (20.971.520 bytes) : 16.985356445s per item
+  * Download took (7.196.268 bytes) :  3.000012546s for the last item
+<div class="page-break"></div>
+
+#### 3 ) Static size of 50MB
+
+- 3 Files with size of : 52.428.800 bytes
+- 1 File with size of : 38.653.548 bytes
+
+* Run 1 :
+  * Chunk creation total :  1m 11.194841075s
+  * Download took (52.428.800 bytes) : 41.388693684s
+  * Download took (38.653.548 bytes) : 30.889057569s
+<div class="page-break"></div>
+* Run 2 :
+  * Chunk creation total :  1m 12.123356481s
+  * Download took (52.428.800 bytes) : 34.440886021s
+  * Download took (38.653.548 bytes) : 32.567489789s
+<div class="page-break"></div>
+* Run 3 :
+  * Chunk creation total :  1m 11.6548972321s
+  * Download took (52.428.800 bytes) : 37.236156498s
+  * Download took (38.653.548 bytes) : 31.654897892s
+<div class="page-break"></div>
+
+
 
 #### 3 ) Results
 
